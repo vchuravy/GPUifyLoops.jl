@@ -56,7 +56,7 @@ macro loop(expr)
 
         # use cpuidx calculation to check bounds of on GPU.
         bounds_chk = quote
-            if !$iscpu(__DEVICE) && !checkbounds(Bool, $(cpuidx), $(gpuidx))
+            if !$iscpu(__DEVICE) && !($gpuidx in $cpuidx)
                 continue
             end
         end 
