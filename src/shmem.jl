@@ -1,0 +1,2 @@
+macro shmem()
+end

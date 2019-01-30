@@ -4,6 +4,8 @@ using StaticArrays
 using Requires
 
 export @setup, @loop, @synchronize
+export @scratch, @shmem
+
 
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
@@ -21,6 +23,7 @@ end
 #   N last are virtual on the GPU and go to a single idx. 
 # - Make SizedArray GPU capable
 # - Parallel loops on CPU?
+# - `prefetch`
 
 iscpu(::Val{:GPU}) = false
 iscpu(::Val{:CPU}) = true
@@ -72,6 +75,9 @@ macro loop(expr)
 
     return esc(Expr(:for, induction, body))
 end
+
+include("scratch.jl")
+include("shmem.jl")
 
 end
 
