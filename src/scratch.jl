@@ -48,6 +48,6 @@ Base.@propagate_inbounds function Base.setindex!(A::ScratchArray{N}, val, I...) 
     if nI == ()
         return A.data = val
     end
-    A.data[nI...] = N
+    A.data[nI...] = val
 end
 
