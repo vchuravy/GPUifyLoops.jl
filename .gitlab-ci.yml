@@ -12,3 +12,51 @@ include:
 test:dev:
   allow_failure: true
 
+test:v1.0:
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - mkdir $JULIA_DEPOT_PATH
+    - julia --project=test/testenv -e '
+                          using Pkg;
+                          Pkg.instantiate();
+                          Pkg.build();
+                          include("test/runtests.jl");'
+    - julia --project=test/gpuenv -e '
+                          using Pkg;
+                          Pkg.instantiate();
+                          Pkg.build();
+                          include("test/runtests.jl");'
+
+test:v1.1:
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - mkdir $JULIA_DEPOT_PATH
+    - julia --project=test/testenv -e '
+                          using Pkg;
+                          Pkg.instantiate();
+                          Pkg.build();
+                          include("test/runtests.jl");'
+    - julia --project=test/gpuenv -e '
+                          using Pkg;
+                          Pkg.instantiate();
+                          Pkg.build();
+                          include("test/runtests.jl");'
+
+test:dev:
+  script:
+    - julia -e 'using InteractiveUtils;
+                versioninfo()'
+    - mkdir $JULIA_DEPOT_PATH
+    - julia --project=test/testenv -e '
+                          using Pkg;
+                          Pkg.instantiate();
+                          Pkg.build();
+                          include("test/runtests.jl");'
+    - julia --project=test/gpuenv -e '
+                          using Pkg;
+                          Pkg.instantiate();
+                          Pkg.build();
+                          include("test/runtests.jl");'
+

@@ -1,8 +1,8 @@
 using GPUifyLoops
-using Test
 using Requires
+using Test
 
-kernel(A) = kernel(Val(:CPU), A)
+kernel(A::Array) = kernel(Val(:CPU), A)
 function kernel(::Val{Dev}, A) where Dev
     @setup Dev
 
@@ -13,21 +13,22 @@ function kernel(::Val{Dev}, A) where Dev
     @synchronize
 end
 
-using Requires
-@init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
-    using .CUDAnative
-    function kernel(A::CuArray)
-        @cuda threads=128 kernel(Val(:GPU), A)
+@testset "Array" begin
+    data = Array{Float32}(undef, 1024)
+    kernel(data)
+end
+
+@static if Base.find_package("CuArrays") !== nothing
+    using CuArrays
+    using CUDAnative
+
+    @eval function kernel(A::CuArray)
+        @cuda threads=length(A) kernel(Val(:GPU), A)
+    end
+
+    @testset "CuArray" begin
+        data = CuArray{Float32}(undef, 1024)
+        kernel(data)
     end
 end
-
-if Base.find_package("CuArrays") !== nothing
-    using CuArrays
-    const DeviceArray = CuArray
-else
-    const DeviceArray = Array
-end
-
-data = DeviceArray{Float32}(undef, 1024)
-kernel(data)
 
