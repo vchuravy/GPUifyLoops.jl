@@ -1,8 +1,14 @@
 module GPUifyLoops
 
 using StaticArrays
+using Requires
 
 export @setup, @loop, @synchronize
+
+@init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
+    using .CUDAnative
+end
+
 
 ###
 # Simple macros that help to write functions that run
@@ -19,7 +25,7 @@ export @setup, @loop, @synchronize
 iscpu(::Val{:GPU}) = false
 iscpu(::Val{:CPU}) = true
 sync(::Val{:CPU}) = nothing
-sync(::Val{:GPU}) = CUDAnative.sync_threads()
+sync(::Val{:GPU}) = sync_threads()
 
 macro setup(sym)
     esc(:(local __DEVICE = Val($sym)))
@@ -56,7 +62,7 @@ macro loop(expr)
 
         # use cpuidx calculation to check bounds of on GPU.
         bounds_chk = quote
-            if !$iscpu(__DEVICE) && !checkbounds(Bool, $(cpuidx), $(gpuidx))
+            if !$iscpu(__DEVICE) && !($gpuidx in $cpuidx)
                 continue
             end
         end 
