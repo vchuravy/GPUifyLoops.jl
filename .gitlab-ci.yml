@@ -9,9 +9,6 @@ include:
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/coverage_v1.1.yml'
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/documentation_v1.1.yml'
 
-test:dev:
-  allow_failure: true
-
 test:v1.0:
   script:
     - julia -e 'using InteractiveUtils;
@@ -45,6 +42,7 @@ test:v1.1:
                           include("test/runtests.jl");'
 
 test:dev:
+  allow_failure: true
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
