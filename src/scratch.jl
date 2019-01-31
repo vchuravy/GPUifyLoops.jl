@@ -31,7 +31,7 @@ end
 struct ScratchArray{N, D}
     data::D
     ScratchArray{N}(data::D) where {N, D} = new{N, D}(data)
-    ScratchArray{N, T}() where {N, T} = new{N, T}(data)
+    ScratchArray{N, T}() where {N, T} = new{N, T}()
 end
 
 
