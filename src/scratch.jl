@@ -1,17 +1,18 @@
 using StaticArrays
 
 """
-   @scratch T Dims N
+   @scratch T Dims M
 
 Allocates scratch memory.
 - `T` type of array
 - `Dims` is a tuple of array dimensions
-- `N` the number of dimensions at the tail that are implicit on the GPU
+- `M` the number of dimensions at the tail that are implicit on the GPU
 """
-macro scratch(T, Dims, N)
+macro scratch(T, Dims, M)
     @assert Dims.head == :tuple
     dims = Dims.args
-    gpudims = ntuple(i->dims[i], length(dims) - N)
+    N = length(dims) - M
+    gpudims = ntuple(i->dims[i], N)
     esc(quote 
         if $iscpu(__DEVICE)
             $MArray{Tuple{$(dims...)}, $T}(undef)
