@@ -29,6 +29,18 @@ end
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
     end
+
+    @testset "contextualize" begin
+        f(x) = 2*x
+        g(x) = GPUifyLoops.contextualize(f)(x)
+        @test g(3.0) == 6.0
+        f(x) = 3*x
+        @test_broken g(3.0) == 9.0
+        f1(x) = sin(x)
+        g(x) = GPUifyLoops.contextualize(f1)(x)
+        asm = sprint(io->CUDAnative.code_ptx(io, g, Tuple{Float64}))
+        # TODO check the device function is called
+    end
 end
 
 # Scratch arrays
@@ -57,4 +69,3 @@ end
     f2()
     f3()
 end
-

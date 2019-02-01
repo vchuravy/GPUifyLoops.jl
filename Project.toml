@@ -4,6 +4,7 @@ authors = ["Valentin Churavy <v.churavy@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+Cassette = "7057c7e9-c182-5462-911a-8362d720325c"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
