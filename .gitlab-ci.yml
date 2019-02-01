@@ -58,3 +58,14 @@ test:dev:
                           Pkg.build();
                           include("test/runtests.jl");'
 
+
+pages:
+  stage: deploy
+  script:
+    - mv docs/build public
+  artifacts:
+    paths:
+    - public
+  only:
+    - master
+
