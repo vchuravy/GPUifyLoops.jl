@@ -36,7 +36,8 @@ end
 function f1()
     @setup :GPU
     A = @scratch Int64 (12, 3) 2
-    @test A.data isa Ref
+    @test A.data isa GPUifyLoops.MArray
+    @test size(A.data) == (1,)
 end
 
 function f2()

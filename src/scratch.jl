@@ -22,7 +22,9 @@ macro scratch(T, Dims, M)
                     $MArray{Tuple{$(gpudims...)}, $T}(undef)
                 )
             else
-                $ScratchArray{$N,$T}()
+                $ScratchArray{$N}(
+                    $MArray{Tuple{1}, $T}(undef)
+                )
             end
         end
     end)
