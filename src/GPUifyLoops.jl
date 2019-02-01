@@ -6,9 +6,25 @@ using Requires
 export @setup, @loop, @synchronize
 export @scratch, @shmem
 
+include("StructOfArrays.jl")
+
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
+    @eval begin
+        sync(::Val{:GPU}) = sync_threads()
+        StructsOfArrays._type_with_eltype(::Type{CuDeviceArray{_T,_N,AS}}, T, N) where{_T,_N,AS} = CuDeviceArray(T,N,AS)
+        StructsOfArrays._type(::Type{<:CuDeviceArray}) = CuDeviceArray
+    end
 end
+
+@init @require CuArrays="3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
+    using .CuArrays
+    @eval begin
+        StructsOfArrays._type_with_eltype(::Type{<:CuArray}, T, N) = CuArray{T, N}
+        StructsOfArrays._type(::Type{<:CuArray}) = CuArray
+    end
+end
+
 
 ###
 # Simple macros that help to write functions that run
@@ -18,7 +34,6 @@ end
 iscpu(::Val{:GPU}) = false
 iscpu(::Val{:CPU}) = true
 sync(::Val{:CPU}) = nothing
-sync(::Val{:GPU}) = sync_threads()
 
 macro setup(sym)
     esc(:(local __DEVICE = Val($sym)))
