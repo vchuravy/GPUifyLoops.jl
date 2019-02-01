@@ -20,11 +20,11 @@ export CPU, CUDA, Device
 using StaticArrays
 using Requires
 
-export @setup, @loop, @synchronize
+export @launch, @loop, @synchronize
 export @scratch, @shmem
 export contextualize
 export @unroll
-export @launch
+export @prefetch, prefetch
 
 ##
 # contextualize
@@ -201,6 +201,7 @@ end
 ###
 include("scratch.jl")
 include("shmem.jl")
+include("prefetch.jl")
 
 ###
 # Loopinfo
