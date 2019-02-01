@@ -1,5 +1,4 @@
 using GPUifyLoops
-using Requires
 using Test
 
 kernel(A::Array) = kernel(Val(:CPU), A)
@@ -30,5 +29,31 @@ end
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
     end
+end
+
+# Scratch arrays
+
+function f1()
+    @setup :GPU
+    A = @scratch Int64 (12, 3) 2
+    @test A.data isa Ref
+end
+
+function f2()
+    @setup :GPU
+    A = @scratch Int64 (12, 3) 1
+    @test A.data isa GPUifyLoops.MArray
+end
+
+function f3()
+    @setup :CPU
+    A = @scratch Int64 (12, 3) 1
+    @test A isa GPUifyLoops.MArray
+end
+
+@testset "Scratch Arrays" begin
+    f1()
+    f2()
+    f3()
 end
 
