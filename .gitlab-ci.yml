@@ -16,11 +16,13 @@ test:v1.0:
     - mkdir $JULIA_DEPOT_PATH
     - julia --project=test/testenv -e '
                           using Pkg;
+                          Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
     - julia --project=test/gpuenv -e '
                           using Pkg;
+                          Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
@@ -32,11 +34,13 @@ test:v1.1:
     - mkdir $JULIA_DEPOT_PATH
     - julia --project=test/testenv -e '
                           using Pkg;
+                          Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
     - julia --project=test/gpuenv -e '
                           using Pkg;
+                          Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
@@ -49,11 +53,13 @@ test:dev:
     - mkdir $JULIA_DEPOT_PATH
     - julia --project=test/testenv -e '
                           using Pkg;
+                          Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
     - julia --project=test/gpuenv -e '
                           using Pkg;
+                          Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
