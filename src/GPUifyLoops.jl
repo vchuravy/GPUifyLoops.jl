@@ -6,24 +6,14 @@ using Requires
 export @setup, @loop, @synchronize
 export @scratch, @shmem
 
-
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
 end
-
 
 ###
 # Simple macros that help to write functions that run
 # both on the CPU and GPU
 ###
-
-# TODO:
-# - Shared-memory: MArray on CPU and staticsharedmem on GPU
-# - `Scratch-array`: Array that has M dimensions with the
-#   N last are virtual on the GPU and go to a single idx. 
-# - Make SizedArray GPU capable
-# - Parallel loops on CPU?
-# - `prefetch`
 
 iscpu(::Val{:GPU}) = false
 iscpu(::Val{:CPU}) = true
