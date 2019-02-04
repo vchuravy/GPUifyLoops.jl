@@ -6,7 +6,7 @@ using Requires
 export @setup, @loop, @synchronize
 export @scratch, @shmem
 
-include("StructOfArrays.jl")
+include("StructsOfArrays.jl")
 
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
