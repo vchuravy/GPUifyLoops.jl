@@ -11,6 +11,7 @@ include:
 
 test:v1.0:
   only:
+    - master
     - staging
     - trying
   script:
@@ -32,6 +33,7 @@ test:v1.0:
 
 test:v1.1:
   only:
+    - master
     - staging
     - trying
   script:
@@ -53,6 +55,7 @@ test:v1.1:
 
 test:dev:
   only:
+    - master
     - staging
     - trying
   allow_failure: true
@@ -76,6 +79,7 @@ test:dev:
 
 documentation:
   only:
+    - master
     - staging
     - trying
 
