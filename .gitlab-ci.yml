@@ -10,6 +10,9 @@ include:
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/documentation_v1.1.yml'
 
 test:v1.0:
+  only:
+    - staging
+    - trying
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
@@ -28,6 +31,9 @@ test:v1.0:
                           include("test/runtests.jl");'
 
 test:v1.1:
+  only:
+    - staging
+    - trying
   script:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
@@ -46,6 +52,9 @@ test:v1.1:
                           include("test/runtests.jl");'
 
 test:dev:
+  only:
+    - staging
+    - trying
   allow_failure: true
   script:
     - julia -e 'using InteractiveUtils;
@@ -65,7 +74,14 @@ test:dev:
                           include("test/runtests.jl");'
 
 
+documentation:
+  only:
+    - staging
+    - trying
+
 pages:
+  dependencies:
+    - documentation
   stage: deploy
   script:
     - mv docs/build public
