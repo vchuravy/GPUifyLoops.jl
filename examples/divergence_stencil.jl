@@ -1,5 +1,4 @@
 using GPUifyLoops, BenchmarkTools
-using CuArrays, CUDAnative
 
 # Increment integer with periodic wrapping.
 @inline incmod1(a, n) = a == n ? 1 : a+1
@@ -37,20 +36,30 @@ end
 calc_div(f::Array, div_f::Array) = div_kernel(Val(:CPU), f, div_f)
 
 # GPU wrapper.
-function calc_div(f::CuArray, div_f::CuArray)
-    Nx, Ny, Nz = size(f)
+@static if Base.find_package("CuArrays") !== nothing
+    using CuArrays, CUDAnative
     
-    Tx, Ty = 16, 16  # Threads per block
-    Bx, By, Bz = Int(Nx/Tx), Int(Ny/Ty), Nz  # Blocks in grid.
+    @eval function calc_div(f::CuArray, div_f::CuArray)
+        Nx, Ny, Nz = size(f)
     
-    @cuda threads=(Tx, Ty) blocks=(Bx, By, Bz) div_kernel(Val(:GPU), f, div_f)
+        Tx, Ty = 16, 16  # Threads per block
+        Bx, By, Bz = Int(Nx/Tx), Int(Ny/Ty), Nz  # Blocks in grid.
+        
+        @cuda threads=(Tx, Ty) blocks=(Bx, By, Bz) div_kernel(Val(:GPU), f, div_f)
+    end
 end
 
-function benchmark_calc_div()
-    Nx, Ny, Nz = 256, 256, 128
-    xc, yc = rand(Nx, Ny, Nz), rand(Nx, Ny, Nz)
+
+Nx, Ny, Nz = 1024, 1024, 512
+
+xc, yc = rand(Nx, Ny, Nz), rand(Nx, Ny, Nz)
+println("CPU:")
+display(@benchmark calc_div($xc, $yc))
+
+@static if Base.find_package("CuArrays") !== nothing
+    using CuArrays, CUDAnative
+
     xg, yg = cu(rand(Nx, Ny, Nz)), cu(rand(Nx, Ny, Nz))
-    
-    display(@benchmark calc_div($xc, $yc))
+    println("GPU:")
     display(@benchmark CuArrays.@sync calc_div($xg, $yg))
 end
