@@ -18,4 +18,4 @@ julia>]
 (v1.1) pkg> develop https://github.com/vchuravy/GPUifyLoops.jl
 ```
 
-**Note**: The current verion of this package requires Julia 1.0, but the preferred version is Julia 1.1
+**Note**: The current version of this package requires Julia 1.0, but the preferred version is Julia 1.1
