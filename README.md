@@ -4,7 +4,7 @@ GPUifyLoops.jl
 
 [![][docs-latest-img]][docs-latest-url]
 
-[docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg]
+[docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-latest-url]: https://juliagpu.gitlab.io/GPUifyLoops.jl/
 
 Installation
