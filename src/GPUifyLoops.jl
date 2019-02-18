@@ -20,17 +20,61 @@ iscpu(::Val{:CPU}) = true
 sync(::Val{:CPU}) = nothing
 sync(::Val{:GPU}) = sync_threads()
 
+
+"""
+    @setup Dev
+
+Setups some hidden state within the function that allows the other macros to
+properly work.
+
+```julia
+function kernel(::Val{Dev}, A) where Dev
+    @setup Dev
+    # ...
+end
+
+kernel(A::Array) = kernel(Val(:CPU), A)
+kernel(A::CuArray) = @cuda kernel(Val(:GPU), A)
+```
+"""
 macro setup(sym)
     esc(:(local __DEVICE = Val($sym)))
 end
 
+"""
+    @syncronize
+
+Calls `sync_threads()` on the GPU and nothing on the CPU.
+"""
 macro synchronize()
     esc(:($sync(__DEVICE)))
 end
 
 # TODO:
 # - check if __DEVICE is defined
+"""
+    @loop for i in (A; B)
+        # body
+    end
 
+Take a `for i in (A; B)` expression and on the CPU lowers it to:
+
+```julia
+for i in A
+    # body
+end
+```
+
+and on the GPU:
+```julia
+for i in B
+    if !(i in A)
+        continue
+    end
+    # body
+end
+```
+"""
 macro loop(expr)
     if expr.head != :for
         error("Syntax error: @loop needs a for loop")
