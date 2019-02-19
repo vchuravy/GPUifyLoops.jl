@@ -1,15 +1,8 @@
-variables:
-  CI_IMAGE_TAG: 'cuda'
-
 include:
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/common.yml'
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/test_v1.0.yml'
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/test_v1.1.yml'
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/test_dev.yml'
-#  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/coverage_v1.1.yml'
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v2/documentation_v1.1.yml'
+  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v3/common.yml'
 
-test:v1.0:
+.projecttest:
+  extends: .test
   only:
     - master
     - staging
@@ -18,66 +11,65 @@ test:v1.0:
     - julia -e 'using InteractiveUtils;
                 versioninfo()'
     - mkdir $JULIA_DEPOT_PATH
-    - julia --project=test/testenv -e '
+    - julia --project=$CI_JULIA_PROJECT -e '
                           using Pkg;
                           Pkg.resolve();
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
-    - julia --project=test/gpuenv -e '
-                          using Pkg;
-                          Pkg.resolve();
-                          Pkg.instantiate();
-                          Pkg.build();
-                          include("test/runtests.jl");'
+.gputest:
+  extends: .projecttest
+  variables:
+    CI_IMAGE_TAG:     'cuda'
+    CI_JULIA_PROJECT: 'test/gpuenv'
+  tags:
+    - cuda
 
-test:v1.1:
-  only:
-    - master
-    - staging
-    - trying
-  script:
-    - julia -e 'using InteractiveUtils;
-                versioninfo()'
-    - mkdir $JULIA_DEPOT_PATH
-    - julia --project=test/testenv -e '
-                          using Pkg;
-                          Pkg.resolve();
-                          Pkg.instantiate();
-                          Pkg.build();
-                          include("test/runtests.jl");'
-    - julia --project=test/gpuenv -e '
-                          using Pkg;
-                          Pkg.resolve();
-                          Pkg.instantiate();
-                          Pkg.build();
-                          include("test/runtests.jl");'
+.cputest:
+  extends: .projecttest
+  variables:
+    CI_IMAGE_TAG:     'plain'
+    CI_JULIA_PROJECT: 'test/testenv'
 
-test:dev:
-  only:
-    - master
-    - staging
-    - trying
+gpu:test:dev:
+  extends: .gputest
+  variables:
+    CI_VERSION_TAG: 'dev'
   allow_failure: true
-  script:
-    - julia -e 'using InteractiveUtils;
-                versioninfo()'
-    - mkdir $JULIA_DEPOT_PATH
-    - julia --project=test/testenv -e '
-                          using Pkg;
-                          Pkg.resolve();
-                          Pkg.instantiate();
-                          Pkg.build();
-                          include("test/runtests.jl");'
-    - julia --project=test/gpuenv -e '
-                          using Pkg;
-                          Pkg.resolve();
-                          Pkg.instantiate();
-                          Pkg.build();
-                          include("test/runtests.jl");'
 
+cpu:test:dev:
+  extends: .cputest
+  variables:
+    CI_VERSION_TAG: 'dev'
+  allow_failure: true
+
+gpu:test:v1.0:
+  extends: .gputest
+  variables:
+    CI_VERSION_TAG: 'v1.0'
+
+cpu:test:v1.0:
+  extends: .cputest
+  variables:
+    CI_VERSION_TAG: 'v1.0'
+
+gpu:test:v1.1:
+  extends: .gputest
+  variables:
+    CI_VERSION_TAG: 'v1.1'
+
+cpu:test:v1.1:
+  extends: .cputest
+  variables:
+    CI_VERSION_TAG: 'v1.1'
 
 documentation:
+  extends: .documentation
+  dependencies:
+    - cpu:test:v1.1 
+  variables:
+    CI_VERSION_TAG: 'v1.1'
+    CI_IMAGE_TAG: 'plain'
   only:
     - master
     - staging
