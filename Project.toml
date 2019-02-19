@@ -1,5 +1,5 @@
 name = "GPUifyLoops"
-uuid = "8c6e557c-24b2-11e9-113b-4b4a3dc760fa"
+uuid = "ba82f77b-6841-5d2e-bd9f-4daf811aec27"
 authors = ["Valentin Churavy <v.churavy@gmail.com>"]
 version = "0.1.0"
 
