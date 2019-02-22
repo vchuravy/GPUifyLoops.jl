@@ -54,9 +54,6 @@ const GPUifyPass = Cassette.@pass transform
 Cassette.@context Ctx
 const ctx = Cassette.disablehooks(Ctx(pass = GPUifyPass))
 
-isdevice() = false
-Cassette.overdub(ctx::Ctx, ::typeof(isdevice)) = true
-
 ###
 # Cassette fixes
 ###
@@ -124,6 +121,4 @@ kernel!(c)
 @assert g.(a) ≈ c
 ```
 """
-function contextualize end
-contextualize(::CUDA, f::F) where F = (args...) -> Cassette.overdub(ctx, f, args...)
-contextualize(::CPU,  f::F) where F = (args...) -> f(args...)
+contextualize(f::F) where F = (args...) -> Cassette.overdub(ctx, f, args...)

@@ -1,9 +1,6 @@
 using GPUifyLoops
 
-kernel(A::Array) = kernel(CPU(), A)
-function kernel(::Dev, A) where Dev
-    @setup Dev
-
+function kernel(A)
     @loop for i in (1:size(A,1);
                     threadIdx().x)
         A[i] = 2*A[i]
@@ -18,9 +15,7 @@ kernel(data)
     using CuArrays
     using CUDAnative
 
-    @eval function kernel(A::CuArray)
-        @cuda threads=length(A) kernel(CUDA(), A)
-    end
+    kernel(A::CuArray) = @launch CUDA() kernel(A, threads=length(A))
 
     data = CuArray{Float32}(undef, 1024)
     kernel(data)
