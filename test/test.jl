@@ -1,8 +1,8 @@
 using GPUifyLoops
 using Test
 
-kernel(A::Array) = kernel(Val(:CPU), A)
-function kernel(::Val{Dev}, A) where Dev
+kernel(A::Array) = kernel(CPU(), A)
+function kernel(::Dev, A) where Dev
     @setup Dev
 
     @loop for i in (1:size(A,1);
@@ -22,7 +22,7 @@ end
     using CUDAnative
 
     @eval function kernel(A::CuArray)
-        @cuda threads=length(A) kernel(Val(:GPU), A)
+        @cuda threads=length(A) kernel(CUDA(), A)
     end
 
     @testset "CuArray" begin
@@ -34,20 +34,20 @@ end
 # Scratch arrays
 
 function f1()
-    @setup :GPU
+    @setup CUDA
     A = @scratch Int64 (12, 3) 2
     @test A.data isa GPUifyLoops.MArray
     @test size(A.data) == (1,)
 end
 
 function f2()
-    @setup :GPU
+    @setup CUDA
     A = @scratch Int64 (12, 3) 1
     @test A.data isa GPUifyLoops.MArray
 end
 
 function f3()
-    @setup :CPU
+    @setup CPU
     A = @scratch Int64 (12, 3) 1
     @test A isa GPUifyLoops.MArray
 end

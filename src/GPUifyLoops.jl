@@ -1,5 +1,18 @@
 module GPUifyLoops
 
+abstract type Device end
+struct CPU <: Device end
+
+abstract type GPU <: Device end
+struct CUDA <: GPU end
+
+#=
+# Hopefully we can eventually support AMDGPUs through ROCm
+struct ROCm <: GPU end
+=#
+
+export CPU, CUDA, Device
+
 using StaticArrays
 using Requires
 
@@ -10,15 +23,15 @@ export @scratch, @shmem
     using .CUDAnative
 end
 
-###
-# Simple macros that help to write functions that run
-# both on the CPU and GPU
-###
+iscpu(::GPU) = false
+iscpu(::CPU) = true
+sync(::CPU) = nothing
+sync(::CUDA) = sync_threads()
 
-iscpu(::Val{:GPU}) = false
-iscpu(::Val{:CPU}) = true
-sync(::Val{:CPU}) = nothing
-sync(::Val{:GPU}) = sync_threads()
+@deprecate iscpu(::Val{:GPU}) iscpu(CUDA())
+@deprecate iscpu(::Val{:CPU}) iscpu(CPU())
+@deprecate sync(::Val{:GPU}) sync(CUDA())
+@deprecate sync(::Val{:CPU}) sync(CPU())
 
 
 """
@@ -28,17 +41,17 @@ Setups some hidden state within the function that allows the other macros to
 properly work.
 
 ```julia
-function kernel(::Val{Dev}, A) where Dev
+function kernel(::Dev, A) where {Dev}
     @setup Dev
     # ...
 end
 
-kernel(A::Array) = kernel(Val(:CPU), A)
-kernel(A::CuArray) = @cuda kernel(Val(:GPU), A)
+kernel(A::Array) = kernel(CPU(), A)
+kernel(A::CuArray) = @cuda kernel(GPU(), A)
 ```
 """
 macro setup(sym)
-    esc(:(local __DEVICE = Val($sym)))
+    esc(:(local __DEVICE = $sym()))
 end
 
 """
