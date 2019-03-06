@@ -49,7 +49,7 @@ function kernel(::Dev, A) where {Dev}
 end
 
 kernel(A::Array) = kernel(CPU(), A)
-kernel(A::CuArray) = @cuda kernel(GPU(), A)
+kernel(A::CuArray) = @cuda kernel(CUDA(), A)
 ```
 """
 macro setup(sym)
