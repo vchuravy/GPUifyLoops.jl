@@ -18,10 +18,12 @@ using Requires
 
 export @setup, @loop, @synchronize
 export @scratch, @shmem
+export contextualize
 
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
 end
+include("context.jl")
 
 iscpu(::GPU) = false
 iscpu(::CPU) = true
@@ -123,6 +125,9 @@ macro loop(expr)
     return esc(Expr(:for, induction, body))
 end
 
+###
+# Scratch and shared-memory
+###
 include("scratch.jl")
 include("shmem.jl")
 

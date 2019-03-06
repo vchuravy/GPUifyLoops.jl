@@ -12,6 +12,18 @@ function kernel(::Dev, A) where Dev
     @synchronize
 end
 
+f2(x) = sin(x)
+f3(x) = 1 + f2(x)
+
+kernel2!(A::Array, B::Array) = kernel2!(CPU(), A, B, f3)
+function kernel2!(::Dev, A, B, h) where Dev
+    @setup Dev
+    @inbounds @loop for i in (1:size(A,1); threadIdx().x)
+        A[i] = h(B[i])
+    end
+    nothing
+end
+
 @testset "Array" begin
     data = Array{Float32}(undef, 1024)
     kernel(data)
@@ -28,6 +40,40 @@ end
     @testset "CuArray" begin
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
+    end
+
+    @testset "contextualize" begin
+        f(x) = 2*x
+        g(x) = GPUifyLoops.contextualize(CUDA(), f)(x)
+        h(x) = GPUifyLoops.contextualize(CPU(), f)(x)
+        @test g(3.0) == 6.0
+        @test h(3.0) == 6.0
+        f(x) = 3*x
+        @test_broken g(3.0) == 9.0
+        f1(x) = sin(x)
+        g1(x) = GPUifyLoops.contextualize(CUDA(), f1)(x)
+        asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
+                                              dump_module=true))
+        @test occursin("call double @__nv_sin", asm)
+
+        begin
+            data = rand(Float32, 1024)
+            fdata = similar(data)
+            kernel2!(fdata, data)
+
+            @test f3.(data) ≈ fdata
+
+            @eval function kernel2!(A::CuArray, B::CuArray)
+                g3(x) = GPUifyLoops.contextualize(CUDA(), f3)(x)
+                @cuda threads=length(A) kernel2!(CUDA(), A, B, g3)
+            end
+
+            cudata = CuArray(data)
+            cufdata = similar(cudata)
+            kernel2!(cufdata, cudata)
+
+            @test f3.(data) ≈ cufdata
+        end
     end
 end
 
@@ -57,4 +103,3 @@ end
     f2()
     f3()
 end
-
