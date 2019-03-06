@@ -12,6 +12,18 @@ function kernel(::Dev, A) where Dev
     @synchronize
 end
 
+f2(x) = sin(x)
+f3(x) = 1 + f2(x)
+
+kernel2!(A::Array, B::Array) = kernel2!(CPU(), A, B, f3)
+function kernel2!(::Dev, A, B, h) where Dev
+    @setup Dev
+    @inbounds @loop for i in (1:size(A,1); threadIdx().x)
+        A[i] = h(B[i])
+    end
+    nothing
+end
+
 @testset "Array" begin
     data = Array{Float32}(undef, 1024)
     kernel(data)
@@ -40,6 +52,25 @@ end
         g(x) = GPUifyLoops.contextualize(f1)(x)
         asm = sprint(io->CUDAnative.code_ptx(io, g, Tuple{Float64}))
         # TODO check the device function is called
+
+        begin
+            data = rand(Float32, 1024)
+            fdata = similar(data)
+            kernel2!(fdata, data)
+
+            @test f3.(data) ≈ fdata
+
+            @eval function kernel2!(A::CuArray, B::CuArray)
+                g3(x) = GPUifyLoops.contextualize(f3)(x)
+                @cuda threads=length(A) kernel2!(CUDA(), A, B, g3)
+            end
+
+            cudata = CuArray(data)
+            cufdata = similar(cudata)
+            kernel2!(cufdata, cudata)
+
+            @test f3.(data) ≈ cufdata
+        end
     end
 end
 
