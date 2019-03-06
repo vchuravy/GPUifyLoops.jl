@@ -23,7 +23,7 @@ kernel!(fdata, data)
     using CUDAnative
 
     @eval function kernel!(A::CuArray, B::CuArray)
-        g(x) = GPUifyLoops.contextualize(f)(x)
+        g(x) = GPUifyLoops.contextualize(CUDA(),f)(x)
         @cuda threads=length(A) kernel!(CUDA(), A, B, g)
     end
 

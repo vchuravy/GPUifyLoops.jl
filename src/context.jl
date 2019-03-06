@@ -87,4 +87,5 @@ for f in (:cos, :cospi, :sin, :sinpi, :tan,
     end
 end
 
-contextualize(f::F) where F = (args...) -> Cassette.overdub(ctx, f, args...)
+contextualize(::CUDA, f::F) where F = (args...) -> Cassette.overdub(ctx, f, args...)
+contextualize(::CPU,  f::F) where F = (args...) -> f(args...)
