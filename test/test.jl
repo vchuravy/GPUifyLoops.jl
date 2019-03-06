@@ -51,9 +51,10 @@ end
         f(x) = 3*x
         @test_broken g(3.0) == 9.0
         f1(x) = sin(x)
-        g(x) = GPUifyLoops.contextualize(CUDA(), f1)(x)
-        asm = sprint(io->CUDAnative.code_ptx(io, g, Tuple{Float64}))
-        # TODO check the device function is called
+        g1(x) = GPUifyLoops.contextualize(CUDA(), f1)(x)
+        asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
+                                              dump_module=true))
+        @test occursin("call double @__nv_sin", asm)
 
         begin
             data = rand(Float32, 1024)
