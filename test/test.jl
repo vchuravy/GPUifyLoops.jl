@@ -49,6 +49,9 @@ end
         @test g(3.0) == 6.0
         @test h(3.0) == 6.0
         f(x) = 3*x
+
+        # This test is broken within the testset
+        # but works outside
         @test_broken g(3.0) == 9.0
         f1(x) = sin(x)
         g1(x) = GPUifyLoops.contextualize(CUDA(), f1)(x)
