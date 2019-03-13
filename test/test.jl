@@ -103,3 +103,17 @@ end
     f2()
     f3()
 end
+
+@testset "Loopinfo" begin
+    # Right now test that we don't break things
+    # Should probably test that codegen is correct.
+    f(N) = @unroll 2 for i in 1:N
+        @show i
+    end
+    f(10)
+
+    f() = @unroll for i in 1:10
+        @show i
+    end
+    f()
+end

@@ -19,6 +19,7 @@ using Requires
 export @setup, @loop, @synchronize
 export @scratch, @shmem
 export contextualize
+export @unroll
 
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
@@ -117,7 +118,7 @@ macro loop(expr)
             if !$iscpu(__DEVICE) && !($gpuidx in $cpuidx)
                 continue
             end
-        end 
+        end
 
         pushfirst!(body.args, bounds_chk)
     end
@@ -131,5 +132,11 @@ end
 include("scratch.jl")
 include("shmem.jl")
 
-end
+###
+# Loopinfo
+# - `@unroll`
+###
+include("loopinfo.jl")
+using .LoopInfo
 
+end
