@@ -33,7 +33,7 @@ end
    @unroll expr
 
 Takes a for loop as `expr` and informs the LLVM unroller to fully unroll it, if
-it is safe to do so and the loop count is know.
+it is safe to do so and the loop count is known.
 """
 macro unroll(expr)
     expr = loopinfo(expr, MD.unroll_full())
