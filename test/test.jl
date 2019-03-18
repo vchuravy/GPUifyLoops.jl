@@ -1,5 +1,6 @@
 using GPUifyLoops
 using Test
+using InteractiveUtils
 
 kernel(A::Array) = kernel(Val(:CPU), A)
 function kernel(::Val{Dev}, A) where Dev
@@ -12,9 +13,18 @@ function kernel(::Val{Dev}, A) where Dev
     @synchronize
 end
 
+function testprefetch(data, index)
+    @test_nowarn prefetch(data, index)
+    io = IOBuffer()
+    code_llvm(io, prefetch, Tuple{typeof(data), typeof(index)})
+    str = String(take!(io))
+    @test occursin(r"call void @llvm\.prefetch\(i8\* %\d+, i32 0, i32 3, i32 1\)", str)
+end
+
 @testset "Array" begin
     data = Array{Float32}(undef, 1024)
     kernel(data)
+    testprefetch(data, 12)
 end
 
 @static if Base.find_package("CuArrays") !== nothing
@@ -28,6 +38,7 @@ end
     @testset "CuArray" begin
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
+        testprefetch(data, 12)
     end
 end
 
@@ -57,4 +68,3 @@ end
     f2()
     f3()
 end
-
