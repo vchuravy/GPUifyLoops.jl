@@ -10,15 +10,15 @@ GPUifyLoops.jl
 Installation
 ------------
 
-GPUifyLoops is an unregistered package, and can be installed using the Julia package
+GPUifyLoops is a registered package, and can be installed using the Julia package
 manager.
 
 ```julia
 julia>]
-(v1.1) pkg> develop https://github.com/vchuravy/GPUifyLoops.jl
+(v1.1) pkg> add GPUifyLoops
 ```
 
-**Note**: The current version of this package requires Julia 1.0, but the preferred version is Julia 1.1
+**Note**: The current version of this package requires Julia 1.1.
 
 License
 -------
