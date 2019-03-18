@@ -1,7 +1,7 @@
 """
     @prefetch A[1, 2]
 
-Prefetch the memory location accessed by A at location A[1, 1]
+Prefetch the memory location accessed by A at location A[1, 2]
 
 TODO:
   - What to do about StructArray
