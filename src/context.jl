@@ -44,7 +44,9 @@ function transform(ctx, ref)
           Expr(:call, Expr(:nooverdub, unknowably_false)),
           Expr(:gotoifnot, Core.SSAValue(i), i+3),
           Expr(:call, Expr(:nooverdub, self), [Core.SlotNumber(i) for i in 2:length(CI.slotnames)]...),
-          x] : [x])
+          x] : nothing)
+    CI.ssavaluetypes = length(CI.code)
+    # Core.Compiler.validate_code(CI)
     return CI
 end
 
