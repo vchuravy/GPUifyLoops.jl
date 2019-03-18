@@ -14,9 +14,9 @@ export @unroll
 
 module MD
     unroll_count(n) = (Symbol("llvm.loop.unroll.count"), convert(Int, n))
-    unroll_disable() = Symbol("llvm.loop.unroll.disable")
-    unroll_enable() = Symbol("llvm.loop.unroll.enable")
-    unroll_full() = Symbol("llvm.loop.unroll.full")
+    unroll_disable() = (Symbol("llvm.loop.unroll.disable"), 1)
+    unroll_enable() = (Symbol("llvm.loop.unroll.enable"), 1)
+    unroll_full() = (Symbol("llvm.loop.unroll.full"), 1)
 end
 
 function loopinfo(expr, nodes...)
