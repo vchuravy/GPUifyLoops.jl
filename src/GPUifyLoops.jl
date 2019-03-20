@@ -1,5 +1,9 @@
 module GPUifyLoops
 
+if VERSION < v"1.1"
+    @error "GPUifyLoops depends on Julia v1.1"
+end
+
 abstract type Device end
 struct CPU <: Device end
 
