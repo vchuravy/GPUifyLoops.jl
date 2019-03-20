@@ -14,7 +14,7 @@ macro scratch(T, Dims, M)
     N = length(dims) - M
     gpudims = ntuple(i->dims[i], N)
     esc(quote 
-        if $iscpu(__DEVICE)
+        if !$isdevice()
             $MArray{Tuple{$(dims...)}, $T}(undef)
         else
             data = if $(length(gpudims)) > 0

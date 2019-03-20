@@ -1,10 +1,7 @@
 using GPUifyLoops
 using Test
 
-kernel(A::Array) = kernel(CPU(), A)
-function kernel(::Dev, A) where Dev
-    @setup Dev
-
+function kernel(A)
     @loop for i in (1:size(A,1);
                     threadIdx().x)
         A[i] = 2*A[i]
@@ -15,9 +12,7 @@ end
 f2(x) = sin(x)
 f3(x) = 1 + f2(x)
 
-kernel2!(A::Array, B::Array) = kernel2!(CPU(), A, B, f3)
-function kernel2!(::Dev, A, B, h) where Dev
-    @setup Dev
+function kernel2!(A, B, h)
     @inbounds @loop for i in (1:size(A,1); threadIdx().x)
         A[i] = h(B[i])
     end
@@ -33,8 +28,8 @@ end
     using CuArrays
     using CUDAnative
 
-    @eval function kernel(A::CuArray)
-        @cuda threads=length(A) kernel(CUDA(), A)
+    function kernel(A::CuArray)
+        @launch CUDA() threads=length(A) kernel(A)
     end
 
     @testset "CuArray" begin
@@ -44,36 +39,32 @@ end
 
     @testset "contextualize" begin
         f(x) = 2*x
-        g(x) = GPUifyLoops.contextualize(CUDA(), f)(x)
-        h(x) = GPUifyLoops.contextualize(CPU(), f)(x)
+        g(x) = GPUifyLoops.contextualize(f)(x)
         @test g(3.0) == 6.0
-        @test h(3.0) == 6.0
         f(x) = 3*x
 
-        # This test is broken within the testset
-        # but works outside
         @test g(3.0) == 9.0
-        f1(x) = sin(x)
-        g1(x) = GPUifyLoops.contextualize(CUDA(), f1)(x)
+        f1(x) = (sin(x); return nothing)
+        g1(x) = GPUifyLoops.contextualize(f1)(x)
         asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
                                               dump_module=true))
         @test occursin("call double @__nv_sin", asm)
 
         begin
+            global kernel2!
             data = rand(Float32, 1024)
             fdata = similar(data)
-            kernel2!(fdata, data)
+            kernel2!(fdata, data, f3)
 
             @test f3.(data) ≈ fdata
 
-            @eval function kernel2!(A::CuArray, B::CuArray)
-                g3(x) = GPUifyLoops.contextualize(CUDA(), f3)(x)
-                @cuda threads=length(A) kernel2!(CUDA(), A, B, g3)
+            function kernel2!(A::CuArray, B::CuArray, f)
+                @launch CUDA() threads=length(A) kernel2!(A, B, f)
             end
 
             cudata = CuArray(data)
             cufdata = similar(cudata)
-            kernel2!(cufdata, cudata)
+            kernel2!(cufdata, cudata, f3)
 
             @test f3.(data) ≈ cufdata
         end
@@ -83,27 +74,24 @@ end
 # Scratch arrays
 
 function f1()
-    @setup CUDA
     A = @scratch Int64 (12, 3) 2
     @test A.data isa GPUifyLoops.MArray
     @test size(A.data) == (1,)
 end
 
 function f2()
-    @setup CUDA
     A = @scratch Int64 (12, 3) 1
     @test A.data isa GPUifyLoops.MArray
 end
 
 function f3()
-    @setup CPU
     A = @scratch Int64 (12, 3) 1
     @test A isa GPUifyLoops.MArray
 end
 
 @testset "Scratch Arrays" begin
-    f1()
-    f2()
+    contextualize(f1)()
+    contextualize(f2)()
     f3()
 end
 

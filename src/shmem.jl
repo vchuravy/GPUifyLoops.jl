@@ -1,7 +1,7 @@
 macro shmem(T, Dims)
     dims = Dims.args
     esc(quote
-        if $iscpu(__DEVICE)
+        if !$isdevice()
             $MArray{Tuple{$(dims...)}, $T}(undef)
         else
             @cuStaticSharedMem($T, $Dims)
