@@ -52,7 +52,7 @@ end
 
         # This test is broken within the testset
         # but works outside
-        @test_broken g(3.0) == 9.0
+        @test g(3.0) == 9.0
         f1(x) = sin(x)
         g1(x) = GPUifyLoops.contextualize(CUDA(), f1)(x)
         asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
