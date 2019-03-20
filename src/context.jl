@@ -22,6 +22,8 @@ using Cassette
     Base.llvmcall("ret i8 0", Bool, Tuple{})
 end
 
+@noinline __do_not_verify(f::F, args...) where F = f(args...)
+
 ##
 # Forces inlining on everything that is not marked `@noinline`
 # Cassette has a #265 issue, let's try to work around that.
@@ -37,12 +39,13 @@ function transform(ctx, ref)
     # 265 fix, insert a call to the original method
     # that we later will remove with LLVM's DCE
     unknowably_false = GlobalRef(@__MODULE__, :unknowably_false)
+    do_not_verify    = GlobalRef(@__MODULE__, :__do_not_verify)
     Cassette.insert_statements!(CI.code, CI.codelocs,
       (x, i) -> i == 1 ?  4 : nothing,
       (x, i) -> i == 1 ? [
           Expr(:call, Expr(:nooverdub, unknowably_false)),
           Expr(:gotoifnot, Core.SSAValue(i), i+3),
-          Expr(:call, Expr(:nooverdub, Core.SlotNumber(1)), (Core.SlotNumber(i) for i in 2:ref.method.nargs)...),
+          Expr(:call, Expr(:nooverdub, do_not_verify), (Core.SlotNumber(i) for i in 1:ref.method.nargs)...),
           x] : nothing)
     CI.ssavaluetypes = length(CI.code)
     # Core.Compiler.validate_code(CI)
