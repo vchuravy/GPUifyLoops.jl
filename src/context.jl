@@ -62,6 +62,12 @@ Cassette.overdub(::Ctx, ::typeof(Core.kwfunc), f) = return Core.kwfunc(f)
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
     Cassette.overdub(::Ctx, ::typeof(CUDAnative.datatype_align), ::Type{T}) where {T} = CUDAnative.datatype_align(T)
+
+    # https://github.com/JuliaGPU/CUDAnative.jl/issues/174
+    function Cassette.overdub(Ctx, ::typeof(Base.unsafe_load), p::Ptr{T}, i) where T
+        align = CUDAnative.datatype_align(T)
+        Core.Intrinsics.pointerref(p, Int(i), align)::T
+    end
 end
 
 ###
