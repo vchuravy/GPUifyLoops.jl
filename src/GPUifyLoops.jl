@@ -31,6 +31,10 @@ export @launch
 ##
 include("context.jl")
 
+backend() = CPU()
+# FIXME: Get backend from Context or have Context per backend
+Cassette.overdub(ctx::Ctx, ::typeof(backend)) = CUDA()
+
 macro launch(ex...)
     # destructure the `@launch` expression
     call = ex[end]
@@ -117,11 +121,17 @@ end
     end
 end
 
-isdevice() = false
-Cassette.overdub(ctx::Ctx, ::typeof(isdevice)) = true
+isdevice(::CPU) = false
+isdevice(::Device) = true
+isdevice() = isdevice(backend())
 
-sync() = nothing
-Cassette.overdub(ctx::Ctx, ::typeof(sync)) = sync_threads()
+sync(::CPU) = nothing
+sync() = sync(backend())
+
+@init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
+    using .CUDAnative
+    sync(::CUDA) = CUDAnative.sync_threads()
+end
 
 @deprecate iscpu(::Val{:GPU}) isdevice()
 @deprecate iscpu(::Val{:CPU}) !isdevice()
@@ -135,7 +145,7 @@ Cassette.overdub(ctx::Ctx, ::typeof(sync)) = sync_threads()
 Calls `sync_threads()` on the GPU and nothing on the CPU.
 """
 macro synchronize()
-    esc(:($sync()))
+    :($sync())
 end
 
 """
