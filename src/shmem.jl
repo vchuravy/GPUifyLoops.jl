@@ -10,8 +10,8 @@ macro shmem(T, Dims)
             $MArray{Tuple{$(dims...)}, $T}(undef)
         else
             len = prod($Dims)
-            ptr = CUDAnative._shmem(Val($id), $T, Val(len))
-            CUDAnative.CuDeviceArray($Dims, CUDAnative.DevicePtr{$T, CUDAnative.AS.Shared}(ptr))
+            ptr = $CUDAnative._shmem(Val($id), $T, Val(len))
+            $CUDAnative.CuDeviceArray($Dims, $CUDAnative.DevicePtr{$T, $CUDAnative.AS.Shared}(ptr))
         end
     end)
 end
