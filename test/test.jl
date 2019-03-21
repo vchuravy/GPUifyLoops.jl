@@ -45,7 +45,7 @@ end
     @testset "CuArray" begin
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
-        testprefetch(data, 12)
+        # testprefetch(data, 12)
     end
 
     @testset "contextualize" begin
