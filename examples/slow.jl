@@ -26,27 +26,23 @@ function kernel(::Val{3}, ::Val{N}, Q, vgeo, nelem) where N
     nothing
 end
 
-function main()
-    @info "Starting main"
-    N = 4
-    nelem = 4000
-    DFloat = Float32
+@static if Base.find_package("CuArrays") !== nothing
+  using CUDAnative
+  using CuArrays
 
-    @static if Base.find_package("CuArrays") !== nothing
-        using CUDAnative
-        using CuArrays
-        @info "Initializing arrays"
-        Nq = N + 1
-        Q = CuArray(zeros(DFloat, Nq, Nq, Nq, 5, nelem))
-        vgeo = CuArray(zeros(DFloat, Nq, Nq, Nq, 14, nelem))
+  N = 4
+  nelem = 4000
+  DFloat = Float32
+  @info "Initializing arrays"
+  Nq = N + 1
+  Q = CuArray(zeros(DFloat, Nq, Nq, Nq, 5, nelem))
+  vgeo = CuArray(zeros(DFloat, Nq, Nq, Nq, 14, nelem))
 
-        @info "Running kernel..."
-        @time @launch(CUDA(), threads=(N+1, N+1, N+1), blocks=nelem,
-                      kernel(Val(3), Val(N), Q, vgeo, nelem))
-        @info "Finished kernel!"
+  @info "Running kernel..."
+  @time @launch(CUDA(), threads=(N+1, N+1, N+1), blocks=nelem,
+                kernel(Val(3), Val(N), Q, vgeo, nelem))
+  @info "Finished kernel!"
 
-        nothing
-    end
+  nothing
 end
 
-main()
