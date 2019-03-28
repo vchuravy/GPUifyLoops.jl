@@ -32,7 +32,7 @@ function transform(ctx, ref)
                        Core.Compiler.isexpr(x, :meta) &&
                        x.args[1] == :noinline,
                    CI.code)
-    CI.inlineable = true
+    CI.inlineable = !noinline
 
     # 265 fix, insert a call to the original method
     # that we later will remove with LLVM's DCE
