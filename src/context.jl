@@ -28,11 +28,11 @@ end
 ##
 function transform(ctx, ref)
     CI = ref.code_info
-    noinline = any(@nospecialize(x) ->
-                       Core.Compiler.isexpr(x, :meta) &&
-                       x.args[1] == :noinline,
-                   CI.code)
-    CI.inlineable = true
+#     noinline = any(@nospecialize(x) ->
+#                        Core.Compiler.isexpr(x, :meta) &&
+#                        x.args[1] == :noinline,
+#                    CI.code)
+#     CI.inlineable = true
 
     # 265 fix, insert a call to the original method
     # that we later will remove with LLVM's DCE
