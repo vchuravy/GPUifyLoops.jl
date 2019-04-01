@@ -22,6 +22,8 @@ using Cassette
     Base.llvmcall("ret i8 0", Bool, Tuple{})
 end
 
+const INTERACTIVE = haskey(ENV, "GPUIFYLOOPS_INTERACTIVE") && ENV["GPUIFYLOOPS_INTERACTIVE"] == "1"
+
 ##
 # Forces inlining on everything that is not marked `@noinline`
 # Cassette has a #265 issue, let's try to work around that.
@@ -34,6 +36,7 @@ function transform(ctx, ref)
                    CI.code)
     CI.inlineable = !noinline
 
+    @static if INTERACTIVE
     # 265 fix, insert a call to the original method
     # that we later will remove with LLVM's DCE
     unknowably_false = GlobalRef(@__MODULE__, :unknowably_false)
@@ -44,6 +47,7 @@ function transform(ctx, ref)
           Expr(:gotoifnot, Core.SSAValue(i), i+3),
           Expr(:call, Expr(:nooverdub, Core.SlotNumber(1)), (Core.SlotNumber(i) for i in 2:ref.method.nargs)...),
           x] : nothing)
+    end
     CI.ssavaluetypes = length(CI.code)
     # Core.Compiler.validate_code(CI)
     return CI
