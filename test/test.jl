@@ -43,7 +43,11 @@ end
         @test g(3.0) == 6.0
         f(x) = 3*x
 
-        @test g(3.0) == 9.0
+        if GPUifyLoops.INTERACTIVE
+            @test g(3.0) == 9.0
+        else
+            @test_broken g(3.0) == 9.0
+        end
         f1(x) = (sin(x); return nothing)
         g1(x) = GPUifyLoops.contextualize(f1)(x)
         asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
