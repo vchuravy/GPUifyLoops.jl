@@ -99,6 +99,7 @@ end
 
     @static if Base.find_package("CuArrays") !== nothing
         using CuArrays
+        using CUDAnative
 
         cudata = CuArray(data)
         @launch CUDA() threads=length(cudata) kernel3!(cudata)
