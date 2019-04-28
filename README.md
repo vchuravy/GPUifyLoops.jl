@@ -20,6 +20,21 @@ julia>]
 
 **Note**: The current version of this package requires Julia 1.1.
 
+Development
+-----------
+
+In order to test this package locally you need to do:
+
+```
+julia --project=test/gpuenv
+julia> ]
+(v1.1) pkg> resolve
+(v1.1) pkg> instantiate
+```
+
+This will resolve the GPU environment, please do not checking changes to `test/gpuenv/`.
+Then you can run the tests with `julia --project=test/gpuenv test/runtests.jl`
+
 License
 -------
 
