@@ -98,6 +98,36 @@ for f in cudafuns
     end
 end
 
+
+@init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
+    using .CUDAnative
+    Base.@propagate_inbounds function Cassette.overdub(::Ctx, ::typeof(Base.getindex), v::MArray, i::Int)
+        @boundscheck checkbounds(v,i)
+        T = eltype(v)
+    
+        @assert isbitstype(T) "Only isbits is supported on the device"
+        return GC.@preserve v begin
+            ptr  = pointer_from_objref(v)
+            dptr = reinterpret(CUDAnative.DevicePtr{T, CUDAnative.AS.Local}, ptr)
+            unsafe_load(dptr, i)
+        end
+    end
+ 
+    Base.@propagate_inbounds function Cassette.overdub(::Ctx, ::typeof(Base.setindex!), v::MArray, val, i::Int)
+        @boundscheck checkbounds(v,i)
+        T = eltype(v)
+    
+        @assert isbitstype(T) "Only isbits is supported on the device"
+        GC.@preserve v begin
+            ptr  = pointer_from_objref(v)
+            dptr = reinterpret(CUDAnative.DevicePtr{T, CUDAnative.AS.Local}, ptr)
+            unsafe_store!(dptr, convert(T, val), i)
+        end
+    
+        return val
+    end
+end
+
 """
     contextualize(::Dev, f)
 
