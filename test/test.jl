@@ -51,8 +51,8 @@ end
         f1(x) = (sin(x); return nothing)
         g1(x) = GPUifyLoops.contextualize(f1)(x)
         asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
-                                              dump_module=true))
-        @test occursin("call double @__nv_sin", asm)
+                                              optimize=false, dump_module=true))
+        @test occursin(r"call .* double @__nv_sin", asm)
 
         begin
             global kernel2!
