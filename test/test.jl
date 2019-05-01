@@ -48,11 +48,12 @@ end
         else
             @test_broken g(3.0) == 9.0
         end
-        f1(x) = (sin(x); return nothing)
+        f1(x) = (sin(1.0 + x); return nothing)
         g1(x) = GPUifyLoops.contextualize(f1)(x)
-        asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64},
+        asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64}, kernel=true,
                                               optimize=false, dump_module=true))
         @test occursin(r"call .* double @__nv_sin", asm)
+        @test occursin("fadd contract double", asm)
 
         begin
             global kernel2!
