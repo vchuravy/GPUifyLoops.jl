@@ -145,3 +145,24 @@ end
     end
     f()
 end
+
+using StaticArrays
+function kernel_MArray!(A)
+  l_F = MArray{Tuple{3, 3}, eltype(A)}(undef)
+  @inbounds for j = 1:3, i = 1:3
+    l_F[i, j] = A[i, j]
+  end
+  nothing
+end
+@testset "StaticArrays" begin
+  @static if Base.find_package("CuArrays") !== nothing
+    using CuArrays
+    using CUDAnative
+
+    A = CuArray(rand(3,3))
+    @launch CUDA() threads=(3,3) kernel_MArray!(A)
+  end
+
+  A = rand(3,3)
+  @launch CPU() threads=(3,3) kernel_MArray!(A)
+end
