@@ -11,6 +11,8 @@ end
 
 f2(x) = sin(x)
 f3(x) = 1 + f2(x)
+f4(x) = x^1.2
+f5(x) = x^3
 
 function kernel2!(A, B, h)
     @inbounds @loop for i in (1:size(A,1); threadIdx().x)
@@ -59,9 +61,15 @@ end
             global kernel2!
             data = rand(Float32, 1024)
             fdata = similar(data)
-            kernel2!(fdata, data, f3)
 
+            kernel2!(fdata, data, f3)
             @test f3.(data) ≈ fdata
+
+            kernel2!(fdata, data, f4)
+            @test f4.(data) ≈ fdata
+
+            kernel2!(fdata, data, f5)
+            @test f5.(data) ≈ fdata
 
             function kernel2!(A::CuArray, B::CuArray, f)
                 @launch CUDA() threads=length(A) kernel2!(A, B, f)
@@ -69,9 +77,15 @@ end
 
             cudata = CuArray(data)
             cufdata = similar(cudata)
-            kernel2!(cufdata, cudata, f3)
 
+            kernel2!(cufdata, cudata, f3)
             @test f3.(data) ≈ cufdata
+
+            kernel2!(cufdata, cudata, f4)
+            @test f4.(data) ≈ cufdata
+
+            kernel2!(cufdata, cudata, f5)
+            @test f5.(data) ≈ cufdata
         end
     end
 end

@@ -5,7 +5,6 @@
 #
 # TODO:
 # - error (erf, ...)
-# - pow
 # - min, max
 # - mod, rem
 # - gamma
@@ -108,6 +107,11 @@ end
 @inline Cassette.overdub(ctx::Ctx, ::typeof(+), a::T, b::T) where T<:Union{Float32, Float64} = add_float_contract(a, b)
 @inline Cassette.overdub(ctx::Ctx, ::typeof(-), a::T, b::T) where T<:Union{Float32, Float64} = sub_float_contract(a, b)
 @inline Cassette.overdub(ctx::Ctx, ::typeof(*), a::T, b::T) where T<:Union{Float32, Float64} = mul_float_contract(a, b)
+@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float64, y::Float64) = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float32, y::Float32) = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float64, y::Int32)   = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float32, y::Int32)   = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Union{Float32, Float64}, y::Int64) = CUDAnative.pow(x, y)
 
 # libdevice.jl
 const cudafuns = (:cos, :cospi, :sin, :sinpi, :tan,
