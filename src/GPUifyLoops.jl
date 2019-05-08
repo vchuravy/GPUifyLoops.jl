@@ -163,11 +163,10 @@ end
 
 and on the GPU:
 ```julia
-for i in B
-    if !(i in A)
-        continue
+let i = B
+    if i in A
+        # body
     end
-    # body
 end
 ```
 """
@@ -179,31 +178,27 @@ macro loop(expr)
     induction = expr.args[1]
     body = expr.args[2]
 
-    if induction.head != :(=)
+    if induction.head !== :(=)
         error("Syntax error: @loop needs a induction variable")
     end
 
+    lhs = induction.args[1]
     rhs = induction.args[2]
-    if rhs.head == :block
-        @assert length(rhs.args) == 3
-        # rhs[2] is a linenode
-        cpuidx = rhs.args[1]
-        gpuidx = rhs.args[3]
-
-        rhs = Expr(:if, :(!$isdevice()), cpuidx, gpuidx)
-        induction.args[2] = rhs
-
-        # use cpuidx calculation to check bounds of on GPU.
-        bounds_chk = quote
-            if $isdevice() && !($gpuidx in $cpuidx)
-                continue
-            end
-        end
-
-        pushfirst!(body.args, bounds_chk)
+    if rhs.head !== :block && length(rhs.args !== 3)
+        error("Syntax error: @loop induction expr needs to have a cpu and a gpu expr")
     end
 
-    return esc(Expr(:for, induction, body))
+    cpurhs = rhs.args[1]
+    # rhs[2] is a linenode
+    gpurhs = rhs.args[3]
+
+    cpuexpr = Expr(:for, Expr(:(=), lhs, cpurhs), body)
+    gpuexpr = Expr(:let, Expr(:(=), lhs, gpurhs),
+                   Expr(:if, :($gpurhs in $cpurhs), # check bounds on the GPU
+                        body))
+    expr = Expr(:if, :($isdevice()), gpuexpr, cpuexpr)
+
+    return esc(expr)
 end
 
 ###
