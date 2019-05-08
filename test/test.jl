@@ -124,6 +124,19 @@ end
 
 # Scratch arrays
 
+function kernel_scratch(A, ::Val{N}) where N
+    a = @scratch eltype(A) (N, N) 2
+    b = @scratch eltype(A) (2, N, N) 2
+    @loop for j in (1:size(A,2); threadIdx().y)
+        @loop for i in (1:size(A,1); threadIdx().x)
+            a[i, j] = A[i, j]
+            b[1, i, j] = -A[i, j]
+            b[2, i, j] = 2a[i, j]
+        end
+    end
+end
+
+
 function f1()
     A = @scratch Int64 (12, 3) 2
     @test A.data isa GPUifyLoops.MArray
@@ -144,6 +157,16 @@ end
     contextualize(f1)()
     contextualize(f2)()
     f3()
+    N = 10
+    A = rand(N, N)
+    @launch CPU() kernel_scratch(A, Val(N))
+
+    @static if Base.find_package("CuArrays") !== nothing
+        using CuArrays
+
+        d_A = CuArray(A)
+        @launch CUDA() kernel_scratch(d_A, Val(N))
+    end
 end
 
 @testset "Loopinfo" begin
