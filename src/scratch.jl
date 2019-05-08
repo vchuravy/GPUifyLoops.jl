@@ -40,7 +40,7 @@ end
 Base.@propagate_inbounds function Base.getindex(A::ScratchArray{N}, I...) where N
     nI = ntuple(i->I[i], N)
     if nI == ()
-        return A.data
+        return A.data[1]
     end
     return A.data[nI...]
 end
@@ -48,7 +48,7 @@ end
 Base.@propagate_inbounds function Base.setindex!(A::ScratchArray{N}, val, I...) where N
     nI = ntuple(i->I[i], N)
     if nI == ()
-        return A.data = val
+        return A.data .= val
     end
     A.data[nI...] = val
 end
