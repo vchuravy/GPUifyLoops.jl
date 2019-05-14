@@ -121,6 +121,28 @@ end
     end
 end
 
+"""
+    pin!(a)
+
+Page lock the memory pointed to by `pointer(a)` if poosible.  This can speed
+up transfers host<->device transfers and allow for overlapping communication
+and computation.  A finalizer is registered to remove the page lock.
+
+In the past there has been issues passing pinned arrays to `MPI.Isend` and
+`MPI.Irecv!`.  If deadlocks occur consider using CUDA aware MPI calls or
+double buffer your send arrays.
+"""
+pin!(::CPU, a) = nothing
+
+@init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
+    using .CUDAnative.CUDAdrv
+
+    function pin!(::CUDA, a)
+      ad = Mem.register(Mem.Host, pointer(a), sizeof(a))
+      finalizer(_ -> Mem.unregister(ad), a)
+    end
+end
+
 isdevice(::CPU) = false
 isdevice(::Device) = true
 isdevice() = isdevice(backend())
