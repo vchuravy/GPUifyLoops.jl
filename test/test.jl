@@ -23,7 +23,7 @@ end
 
 @testset "Array" begin
     data = Array{Float32}(undef, 1024)
-    kernel(data)
+    @launch CPU() kernel(data)
 end
 
 @static if Base.find_package("CuArrays") !== nothing
@@ -154,9 +154,9 @@ function f3()
 end
 
 @testset "Scratch Arrays" begin
-    contextualize(f1)()
-    contextualize(f2)()
-    f3()
+    contextualize(CUDA(), f1)()
+    contextualize(CUDA(), f2)()
+    contextualize(CPU(),  f3)()
     N = 10
     A = rand(N, N)
     @launch CPU() kernel_scratch(A, Val(N))
