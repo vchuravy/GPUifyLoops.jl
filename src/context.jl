@@ -25,7 +25,8 @@ const INTERACTIVE = haskey(ENV, "GPUIFYLOOPS_INTERACTIVE") && ENV["GPUIFYLOOPS_I
 
 ##
 # Forces inlining on everything that is not marked `@noinline`
-# Cassette has a #265 issue, let's try to work around that.
+# Don't overdub `@pure` functions
+# Optionally: Cassette has a #265 issue, let's try to work around that.
 ##
 function transform(ctx, ref)
     CI = ref.code_info
@@ -34,6 +35,17 @@ function transform(ctx, ref)
                        x.args[1] == :noinline,
                    CI.code)
     CI.inlineable = !noinline
+
+    if CI.pure
+        # don't overdub pure functions
+        Cassette.insert_statements!(CI.code, CI.codelocs,
+          (x, i) -> i == 1 ?  2 : nothing,
+          (x, i) -> i == 1 ? [
+              Expr(:call, Expr(:nooverdub, Core.SlotNumber(1)), (Core.SlotNumber(i) for i in 2:ref.method.nargs)...),
+              Expr(:return, Core.SSAValue(i))] : nothing)
+        CI.ssavaluetypes = length(CI.code)
+        return CI
+    end
 
     @static if INTERACTIVE
     # 265 fix, insert a call to the original method
