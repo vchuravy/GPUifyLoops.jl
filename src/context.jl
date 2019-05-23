@@ -108,6 +108,11 @@ const ctx = Cassette.disablehooks(Ctx(pass = GPUifyPass))
 @inline Cassette.overdub(::Ctx, ::typeof(Base.Broadcast.axes), args...) = return Base.Broadcast.axes(args...)
 
 
+@init @require AMDGPUnative="12f4821f-d7ee-5ba6-b76b-566925c5fcc5" begin
+    using .AMDGPUnative
+    @inline Cassette.overdub(::Ctx, ::typeof(AMDGPUnative.datatype_align), ::Type{T}) where {T} = AMDGPUnative.datatype_align(T)
+end
+
 ###
 # Rewrite functions
 ###
@@ -162,6 +167,26 @@ for f in cudafuns
     end
 end
 
+#= FIXME
+# math.jl
+const rocfuns = (:cos, :cospi, :sin, :sinpi, :tan,
+          :acos, :asin, :atan,
+          :cosh, :sinh, :tanh,
+          :acosh, :asinh, :atanh,
+          :log, :log10, :log1p, :log2,
+          :exp, :exp2, :exp10, :expm1, :ldexp,
+          :isfinite, :isinf, :isnan,
+          :signbit, :abs,
+          :sqrt, :cbrt,
+          :ceil, :floor,)
+for f in rocfuns
+    @eval function Cassette.overdub(ctx::Ctx, ::typeof(Base.$f), x::Union{Float32, Float64})
+        @Base._inline_meta
+        return AMDGPUnative.$f(x)
+    end
+end
+=#
+
 function Cassette.overdub(::Ctx, ::typeof(:), start::T, step::T, stop::T) where T<:Union{Float16,Float32,Float64}
     lf = (stop-start)/step
     if lf < 0
@@ -178,6 +203,8 @@ function Cassette.overdub(::Ctx, ::typeof(:), start::T, step::T, stop::T) where 
 end
 
 
+=======
+
 """
     contextualize(::Dev, f)
 
@@ -185,7 +212,8 @@ This contexualizes the function `f` for a given device type `Dev`.
 
 For the device `CUDA()`, `contextualize` replaces calls to math library
 functions.  For example, `cos`, `sin`, are replaced with `CUDAnative.cos`,
-`CUDAnative.sin`, respectively.
+`CUDAnative.sin`, respectively. The equivalent is done for `ROCm()` and
+`AMDGPUnative` math functions.
 
 The full list functions that are replaced is $cudafuns.
 

@@ -1,0 +1,6 @@
+[deps]
+AMDGPUnative = "12f4821f-d7ee-5ba6-b76b-566925c5fcc5"
+HSAArrays = "ddf941ca-5d6a-11e9-36cc-a3fed13dd2fc"
+GPUifyLoops = "ba82f77b-6841-5d2e-bd9f-4daf811aec27"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

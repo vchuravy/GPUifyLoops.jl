@@ -13,6 +13,8 @@ __shmem(D::Device, args...) = throw(MethodError(__shmem, (D, args...)))
     end
 end
 
+# TODO: AMDGPU shmem
+
 shmem_id = 0
 macro shmem(T, dims)
     global shmem_id
