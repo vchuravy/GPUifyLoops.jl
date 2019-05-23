@@ -172,7 +172,7 @@ end
 
 @init @require AMDGPUnative="12f4821f-d7ee-5ba6-b76b-566925c5fcc5" begin
     using .AMDGPUnative
-    sync(::ROC) = AMDGPUnative.sync_threads()
+    sync(::ROC) = AMDGPUnative.sync_workgroup()
 end
 
 @deprecate iscpu(::Val{:GPU}) isdevice()
