@@ -15,10 +15,22 @@ struct CUDA <: GPU end
 struct ROCm <: GPU end
 =#
 
-export CPU, CUDA, Device
+"""
+   device(::AbstractArray)
+
+Returns the device which stores elements of a given array.
+"""
+device(::AbstractArray) = CPU()
+
+using Requires
+@init @require CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
+  using .CuArrays
+  device(::CuArray) = CUDA()
+end
+
+export CPU, CUDA, Device, device
 
 using StaticArrays
-using Requires
 
 export @setup, @loop, @synchronize
 export @scratch, @shmem
