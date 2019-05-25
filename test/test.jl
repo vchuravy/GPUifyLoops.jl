@@ -26,9 +26,13 @@ end
     kernel(data)
 
     @test device(data) == CPU()
-    
+
     data_view = view(data, 1:512)
     @test device(data_view) == CPU()
+
+    md_data = reshape(data, 2, 4, 8, 16)
+    md_data_view = view(md_data, 2, 1:2, 4:8, 8)
+    @test device(md_data_view) == CPU()
 end
 
 @static if Base.find_package("CuArrays") !== nothing
@@ -42,11 +46,15 @@ end
     @testset "CuArray" begin
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
-    
+ 
         @test device(data) == CUDA()
-        
+
         data_view = view(data, 1:512)
         @test device(data_view) == CUDA()
+
+        md_data = reshape(data, 2, 4, 8, 16)
+        md_data_view = view(md_data, 2, 1:2, 4:8, 8)
+        @test device(md_data_view) == CUDA()
     end
 
     @testset "contextualize" begin
