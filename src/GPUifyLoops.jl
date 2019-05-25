@@ -20,6 +20,7 @@ struct ROCm <: GPU end
 
 Returns the device which stores elements of a given array.
 """
+device(A::AbstractArray) = error("No device associated with $(typeof(A))")
 device(::Array) = CPU()
 device(::SubArray{T, N, Array{T, N}}) where {T, N} = CPU()
 
