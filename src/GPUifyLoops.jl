@@ -20,7 +20,8 @@ struct ROCm <: GPU end
 
 Returns the device which stores elements of a given array.
 """
-device(::AbstractArray) = CPU()
+device(::Array) = CPU()
+device(::SubArray{T, N, Array{T, N}}) where {T, N} = CPU()
 
 using Requires
 @init @require CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
