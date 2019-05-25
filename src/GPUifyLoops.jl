@@ -31,9 +31,10 @@ export @launch
 ##
 include("context.jl")
 
-backend() = CPU()
+backend() = error("Calling backend function outside of context")
 # FIXME: Get backend from Context or have Context per backend
-Cassette.overdub(ctx::Ctx, ::typeof(backend)) = CUDA()
+Cassette.overdub(ctx::CuCtx, ::typeof(backend)) = CUDA()
+Cassette.overdub(ctx::CPUCtx, ::typeof(backend)) = CPU()
 
 macro launch(ex...)
     # destructure the `@launch` expression
@@ -64,7 +65,7 @@ Launch a kernel on the GPU. `kwargs` are passed to `@cuda`
 `kwargs` can be any of the compilation and runtime arguments
 normally passed to `@cuda`.
 """
-launch(::CPU, f, args...; kwargs...) = f(args...)
+launch(dev::CPU, f, args...; kwargs...) = contextualize(dev, f)(args...)
 
 """
     launch_config(::F, maxthreads, args...; kwargs...)
@@ -105,12 +106,12 @@ end
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
 
-    function launch(::CUDA, f::F, args...; kwargs...) where F
+    function launch(dev::CUDA, f::F, args...; kwargs...) where F
         compiler_kwargs, call_kwargs = split_kwargs(kwargs)
         GC.@preserve args begin
             kernel_args = map(cudaconvert, args)
             kernel_tt = Tuple{map(Core.Typeof, kernel_args)...}
-            kernel = cufunction(contextualize(f), kernel_tt; compiler_kwargs...)
+            kernel = cufunction(contextualize(dev, f), kernel_tt; compiler_kwargs...)
 
             maxthreads = CUDAnative.maxthreads(kernel)
             config = launch_config(f, maxthreads, args...; call_kwargs...)

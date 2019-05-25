@@ -12,7 +12,7 @@ end
 
 data = rand(Float32, 1024)
 fdata = similar(data)
-kernel!(fdata, data, f)
+@launch CPU() kernel!(fdata, data, f)
 
 @assert f.(data) ≈ fdata
 

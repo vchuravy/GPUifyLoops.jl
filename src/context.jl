@@ -25,7 +25,8 @@ const INTERACTIVE = haskey(ENV, "GPUIFYLOOPS_INTERACTIVE") && ENV["GPUIFYLOOPS_I
 
 ##
 # Forces inlining on everything that is not marked `@noinline`
-# Cassette has a #265 issue, let's try to work around that.
+# Don't overdub `@pure` functions
+# Optionally: Cassette has a #265 issue, let's try to work around that.
 ##
 function transform(ctx, ref)
     CI = ref.code_info
@@ -34,6 +35,17 @@ function transform(ctx, ref)
                        x.args[1] == :noinline,
                    CI.code)
     CI.inlineable = !noinline
+
+    if CI.pure
+        # don't overdub pure functions
+        Cassette.insert_statements!(CI.code, CI.codelocs,
+          (x, i) -> i == 1 ?  2 : nothing,
+          (x, i) -> i == 1 ? [
+              Expr(:call, Expr(:nooverdub, Core.SlotNumber(1)), (Core.SlotNumber(i) for i in 2:ref.method.nargs)...),
+              Expr(:return, Core.SSAValue(i))] : nothing)
+        CI.ssavaluetypes = length(CI.code)
+        return CI
+    end
 
     @static if INTERACTIVE
     # 265 fix, insert a call to the original method
@@ -54,28 +66,23 @@ end
 
 const GPUifyPass = Cassette.@pass transform
 
-Cassette.@context Ctx
-const ctx = Cassette.disablehooks(Ctx(pass = GPUifyPass))
+Cassette.@context CuCtx
+Cassette.@context CPUCtx
+const ALLCTX = Union{CuCtx, CPUCtx}
+
+context(dev::Device) = error("No context defined for $dev")
+
+const cuctx  = Cassette.disablehooks( CuCtx(pass = GPUifyPass))
+const cpuctx = Cassette.disablehooks(CPUCtx(pass = GPUifyPass))
+
+context(::CPU)  = cpuctx
+context(::CUDA) = cuctx
 
 ###
 # Cassette fixes
 ###
-@inline Cassette.overdub(::Ctx, ::typeof(Core.kwfunc), f) = return Core.kwfunc(f)
-@inline Cassette.overdub(::Ctx, ::typeof(Core.apply_type), args...) = return Core.apply_type(args...)
-
-# the functions below are marked `@pure` and by rewritting them we hide that from
-# inference so we leave them alone (see https://github.com/jrevels/Cassette.jl/issues/108).
-@inline Cassette.overdub(::Ctx, ::typeof(Base.isimmutable), x) = return Base.isimmutable(x)
-@inline Cassette.overdub(::Ctx, ::typeof(Base.isstructtype), t) = return Base.isstructtype(t)
-@inline Cassette.overdub(::Ctx, ::typeof(Base.isprimitivetype), t) = return Base.isprimitivetype(t)
-@inline Cassette.overdub(::Ctx, ::typeof(Base.isbitstype), t) = return Base.isbitstype(t)
-@inline Cassette.overdub(::Ctx, ::typeof(Base.isbits), x) = return Base.isbits(x)
-@inline Cassette.overdub(::Ctx, ::typeof(StaticArrays.Size), x::Type{<:AbstractArray{<:Any, N}}) where {N} = return StaticArrays.Size(x)
-
-@init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
-    using .CUDAnative
-    @inline Cassette.overdub(::Ctx, ::typeof(CUDAnative.datatype_align), ::Type{T}) where {T} = CUDAnative.datatype_align(T)
-end
+@inline Cassette.overdub(::ALLCTX, ::typeof(Core.kwfunc), f) = return Core.kwfunc(f)
+@inline Cassette.overdub(::ALLCTX, ::typeof(Core.apply_type), args...) = return Core.apply_type(args...)
 
 ###
 # Rewrite functions
@@ -99,19 +106,24 @@ for (f, T) in Base.Iterators.product((:add, :mul, :sub), (Float32, Float64))
     @eval begin
         # the @pure is necessary so that we can constant propagate.
         Base.@pure function $name(a::$T, b::$T)
-            @Base._inline_meta
+            Base.@_inline_meta
             Base.llvmcall($ir, $T, Tuple{$T, $T}, a, b)
         end
     end
 end
-@inline Cassette.overdub(ctx::Ctx, ::typeof(+), a::T, b::T) where T<:Union{Float32, Float64} = add_float_contract(a, b)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(-), a::T, b::T) where T<:Union{Float32, Float64} = sub_float_contract(a, b)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(*), a::T, b::T) where T<:Union{Float32, Float64} = mul_float_contract(a, b)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float64, y::Float64) = CUDAnative.pow(x, y)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float32, y::Float32) = CUDAnative.pow(x, y)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float64, y::Int32)   = CUDAnative.pow(x, y)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Float32, y::Int32)   = CUDAnative.pow(x, y)
-@inline Cassette.overdub(ctx::Ctx, ::typeof(^), x::Union{Float32, Float64}, y::Int64) = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::ALLCTX, ::typeof(+), a::T, b::T) where T<:Union{Float32, Float64} = add_float_contract(a, b)
+@inline Cassette.overdub(ctx::ALLCTX, ::typeof(-), a::T, b::T) where T<:Union{Float32, Float64} = sub_float_contract(a, b)
+@inline Cassette.overdub(ctx::ALLCTX, ::typeof(*), a::T, b::T) where T<:Union{Float32, Float64} = mul_float_contract(a, b)
+
+##
+# CuCtx specific overdubs
+##
+
+@inline Cassette.overdub(ctx::CuCtx, ::typeof(^), x::Float64, y::Float64) = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::CuCtx, ::typeof(^), x::Float32, y::Float32) = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::CuCtx, ::typeof(^), x::Float64, y::Int32)   = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::CuCtx, ::typeof(^), x::Float32, y::Int32)   = CUDAnative.pow(x, y)
+@inline Cassette.overdub(ctx::CuCtx, ::typeof(^), x::Union{Float32, Float64}, y::Int64) = CUDAnative.pow(x, y)
 
 # libdevice.jl
 const cudafuns = (:cos, :cospi, :sin, :sinpi, :tan,
@@ -125,14 +137,14 @@ const cudafuns = (:cos, :cospi, :sin, :sinpi, :tan,
           :sqrt, :cbrt,
           :ceil, :floor,)
 for f in cudafuns
-    @eval function Cassette.overdub(ctx::Ctx, ::typeof(Base.$f), x::Union{Float32, Float64})
+    @eval function Cassette.overdub(ctx::CuCtx, ::typeof(Base.$f), x::Union{Float32, Float64})
         @Base._inline_meta
         return CUDAnative.$f(x)
     end
 end
 
 """
-    contextualize(::Dev, f)
+    contextualize(::Device, f)
 
 This contexualizes the function `f` for a given device type `Dev`.
 
@@ -166,4 +178,7 @@ kernel!(c)
 @assert g.(a) ≈ c
 ```
 """
-contextualize(f::F) where F = (args...) -> Cassette.overdub(ctx, f, args...)
+function contextualize(dev::Device, f::F) where F
+    ctx = context(dev)
+    return (args...) -> Cassette.overdub(ctx, f, args...)
+end

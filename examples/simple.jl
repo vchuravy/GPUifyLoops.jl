@@ -9,7 +9,7 @@ function kernel(A)
 end
 
 data = Array{Float32}(undef, 1024)
-kernel(data)
+@launch CPU() kernel(data)
 
 @static if Base.find_package("CuArrays") !== nothing
     using CuArrays
