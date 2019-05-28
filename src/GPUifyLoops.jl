@@ -20,17 +20,18 @@ struct ROCm <: GPU end
 
 Returns the device which stores elements of a given array.
 """
-device(A::AbstractArray) = error("No device associated with $(typeof(A))")
 device(::Array) = CPU()
-# for views of Arrays
-device(::SubArray{T, N, Array{T, M}}) where {T, N, M} = CPU()
+function device(A::AbstractArray)
+  if parent(A) === A
+     error("reached $A")
+  end
+  device(parent(A))
+end
 
 using Requires
 @init @require CuArrays = "3a865a2d-5b23-5a0f-bc46-62713ec82fae" begin
   using .CuArrays
   device(::CuArray) = CUDA()
-  # for views of CuArrays
-  device(::SubArray{T, N, CuArray{T, M}}) where {T, N, M} = CUDA()
 end
 
 export CPU, CUDA, Device, device
