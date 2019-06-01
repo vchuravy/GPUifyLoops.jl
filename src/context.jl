@@ -131,6 +131,22 @@ for f in cudafuns
     end
 end
 
+function Cassette.overdub(::Ctx, ::typeof(:), start::T, step::T, stop::T) where T<:Union{Float16,Float32,Float64}
+    lf = (stop-start)/step
+    if lf < 0
+        len = 0
+    elseif lf == 0
+        len = 1
+    else
+        len = round(Int, lf) + 1
+        stop′ = start + (len-1)*step
+        # if we've overshot the end, subtract one:
+        len -= (start < stop < stop′) + (start > stop > stop′)
+    end
+    Base.steprangelen_hp(T, start, step, 0, len, 1)
+end
+
+
 """
     contextualize(::Dev, f)
 
