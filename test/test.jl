@@ -57,6 +57,30 @@ end
         @test occursin(r"call .* double @__nv_sin", asm)
         @test occursin("fadd contract double", asm)
 
+        @testset "don't overdub intrinsics" begin
+            global simple_kernel, kernel
+            simple_kernel(A, x) = (A[1] = 1 + x; return nothing)
+            kernel(A, x) = GPUifyLoops.contextualize(simple_kernel)(A, x)
+            CI, ret = CUDAnative.code_typed(kernel, Tuple{CUDAnative.CuDeviceArray{Int64,1, CUDAnative.AS.Global}, Int64}, debuginfo=:source)[1]
+
+            intrinsics = findall(CI.code) do stmt
+                if Base.Meta.isexpr(stmt, :call)
+                    f = stmt.args[1]
+                    if f isa GlobalRef
+                        f = getfield(f.mod, f.name)
+                        return f isa Core.IntrinsicFunction || f isa Core.Builtin
+                    end
+                end
+                return false
+            end
+
+            for i in intrinsics
+                lineinfo = CI.linetable[CI.codelocs[i]]
+                @test !(lineinfo.method === :call ||
+                        lineinfo.file === Symbol("context.jl"))
+            end
+        end
+
         begin
             global kernel2!
             data = rand(Float32, 1024)
