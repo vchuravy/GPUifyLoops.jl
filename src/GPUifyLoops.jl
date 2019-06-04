@@ -122,7 +122,7 @@ end
             kernel_args = map(cudaconvert, args)
             kernel_tt = Tuple{map(Core.Typeof, kernel_args)...}
             if CUDANativeVersion > v"2.1.2"
-                kernel = cufunction(Cassette.overdub, kernel_tt; name=string("julia_", nameof(f)), compiler_kwargs...)
+                kernel = cufunction(Cassette.overdub, kernel_tt; name=nameof(f), compiler_kwargs...)
             else
                 kernel = cufunction(Cassette.overdub, kernel_tt; compiler_kwargs...)
             end
