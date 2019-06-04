@@ -105,12 +105,26 @@ end
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
 
+    function version_check()
+        project = joinpath(dirname(pathof(CUDAnative)), "../Project.toml")
+        let Pkg = Base.require(Base.PkgId(Base.UUID((0x44cfe95a1eb252ea, 0xb672e2afdf69b78f)), "Pkg"))
+            project = Pkg.TOML.parse(String(read(project)))
+            return version = VersionNumber(get(project, "version", "0.0.0"))
+        end
+    end
+
+    global const CUDANativeVersion = version_check()
+
     function launch(::CUDA, f::F, args...; kwargs...) where F
         compiler_kwargs, call_kwargs = split_kwargs(kwargs)
         GC.@preserve args begin
             kernel_args = map(cudaconvert, args)
             kernel_tt = Tuple{map(Core.Typeof, kernel_args)...}
-            kernel = cufunction(contextualize(f), kernel_tt; compiler_kwargs...)
+            if CUDANativeVersion > v"2.1.2"
+                kernel = cufunction(contextualize(f), kernel_tt; name=string("julia_", nameof(f)), compiler_kwargs...)
+            else
+                kernel = cufunction(contextualize(f), kernel_tt; compiler_kwargs...)
+            end
 
             maxthreads = CUDAnative.maxthreads(kernel)
             config = launch_config(f, maxthreads, args...; call_kwargs...)
