@@ -117,13 +117,14 @@ end
 
     function launch(::CUDA, f::F, args...; kwargs...) where F
         compiler_kwargs, call_kwargs = split_kwargs(kwargs)
+        args = (ctx, f, args...)
         GC.@preserve args begin
             kernel_args = map(cudaconvert, args)
             kernel_tt = Tuple{map(Core.Typeof, kernel_args)...}
             if CUDANativeVersion > v"2.1.2"
-                kernel = cufunction(contextualize(f), kernel_tt; name=string("julia_", nameof(f)), compiler_kwargs...)
+                kernel = cufunction(Cassette.overdub, kernel_tt; name=string("julia_", nameof(f)), compiler_kwargs...)
             else
-                kernel = cufunction(contextualize(f), kernel_tt; compiler_kwargs...)
+                kernel = cufunction(Cassette.overdub, kernel_tt; compiler_kwargs...)
             end
 
             maxthreads = CUDAnative.maxthreads(kernel)
