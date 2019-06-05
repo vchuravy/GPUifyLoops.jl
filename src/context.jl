@@ -69,12 +69,16 @@ function transform(ctx, ref)
             end
             f = ir_element(f, CI.code)
             if f isa GlobalRef
-                ff = getfield(f.mod, f.name)
-                if ff isa Core.IntrinsicFunction || ff isa Core.Builtin
-                    if applycall
-                        stmt.args[2] = Expr(:nooverdub, f)
-                    else
-                        stmt.args[1] = Expr(:nooverdub, f)
+                mod = f.mod
+                name = f.name
+                if Base.isbindingresolved(mod, name)
+                    ff = getfield(f.mod, f.name)
+                    if ff isa Core.IntrinsicFunction || ff isa Core.Builtin
+                        if applycall
+                            stmt.args[2] = Expr(:nooverdub, f)
+                        else
+                            stmt.args[1] = Expr(:nooverdub, f)
+                        end
                     end
                 end
             end
