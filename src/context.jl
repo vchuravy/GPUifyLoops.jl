@@ -23,6 +23,14 @@ end
 
 const INTERACTIVE = haskey(ENV, "GPUIFYLOOPS_INTERACTIVE") && ENV["GPUIFYLOOPS_INTERACTIVE"] == "1"
 
+function ir_element(x, code::Vector)
+    while isa(x, Core.SSAValue)
+        x = code[x.id]
+    end
+    return x
+end
+
+
 ##
 # Forces inlining on everything that is not marked `@noinline`
 # Cassette has a #265 issue, let's try to work around that.
@@ -47,6 +55,34 @@ function transform(ctx, ref)
           Expr(:call, Expr(:nooverdub, Core.SlotNumber(1)), (Core.SlotNumber(i) for i in 2:ref.method.nargs)...),
           x] : nothing)
     end
+
+    # overdubbing IntrinsicFunctions removes our ability to profile code
+    newstmt = (x, i) -> begin
+        isassign = Base.Meta.isexpr(x, :(=))
+        stmt = isassign ? x.args[2] : x
+        if Base.Meta.isexpr(stmt, :call)
+            applycall = Cassette.is_ir_element(stmt.args[1], GlobalRef(Core, :_apply), CI.code)
+            if applycall
+                f = stmt.args[2]
+            else
+                f = stmt.args[1]
+            end
+            f = ir_element(f, CI.code)
+            if f isa GlobalRef
+                ff = getfield(f.mod, f.name)
+                if ff isa Core.IntrinsicFunction || ff isa Core.Builtin
+                    if applycall
+                        stmt.args[2] = Expr(:nooverdub, f)
+                    else
+                        stmt.args[1] = Expr(:nooverdub, f)
+                    end
+                end
+            end
+        end
+        return [x]
+    end
+
+    Cassette.insert_statements!(CI.code, CI.codelocs, (x, i) -> 1, newstmt)
     CI.ssavaluetypes = length(CI.code)
     # Core.Compiler.validate_code(CI)
     return CI
