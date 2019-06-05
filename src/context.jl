@@ -71,7 +71,7 @@ function transform(ctx, ref)
             if f isa GlobalRef
                 mod = f.mod
                 name = f.name
-                if Base.isbindingresolved(mod, name)
+                if Base.isbindingresolved(mod, name) && Base.isdefined(mod, name)
                     ff = getfield(f.mod, f.name)
                     if ff isa Core.IntrinsicFunction || ff isa Core.Builtin
                         if applycall
