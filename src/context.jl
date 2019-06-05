@@ -91,6 +91,7 @@ const ctx = Cassette.disablehooks(Ctx(pass = GPUifyPass))
 ###
 @inline Cassette.overdub(::Ctx, ::typeof(Core.kwfunc), f) = return Core.kwfunc(f)
 @inline Cassette.overdub(::Ctx, ::typeof(Core.apply_type), args...) = return Core.apply_type(args...)
+@inline Cassette.overdub(::Ctx, ::typeof(StaticArrays.Size), x::Type{<:AbstractArray{<:Any, N}}) where {N} = return StaticArrays.Size(x)
 
 ###
 # Rewrite functions
