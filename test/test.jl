@@ -63,17 +63,39 @@ end
         @test g(3.0) == 6.0
         f(x) = 3*x
 
-        if GPUifyLoops.INTERACTIVE
-            @test g(3.0) == 9.0
-        else
-            @test_broken g(3.0) == 9.0
-        end
+        # Enable test on v1.3 once fix commit is known
+        # @test g(3.0) == 9.0
+        @test_broken g(3.0) == 9.0
         f1(x) = (sin(1.0 + x); return nothing)
         g1(x) = GPUifyLoops.contextualize(f1)(x)
         asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64}, kernel=true,
                                               optimize=false, dump_module=true))
         @test occursin(r"call .* double @__nv_sin", asm)
         @test occursin("fadd contract double", asm)
+
+        @testset "don't overdub intrinsics" begin
+            global simple_kernel, kernel
+            simple_kernel(A, x) = (A[1] = 1 + x; return nothing)
+            kernel(A, x) = GPUifyLoops.contextualize(simple_kernel)(A, x)
+            CI, ret = CUDAnative.code_typed(kernel, Tuple{CUDAnative.CuDeviceArray{Int64,1, CUDAnative.AS.Global}, Int64}, debuginfo=:source)[1]
+
+            intrinsics = findall(CI.code) do stmt
+                if Base.Meta.isexpr(stmt, :call)
+                    f = stmt.args[1]
+                    if f isa GlobalRef
+                        f = getfield(f.mod, f.name)
+                        return f isa Core.IntrinsicFunction || f isa Core.Builtin
+                    end
+                end
+                return false
+            end
+
+            for i in intrinsics
+                lineinfo = CI.linetable[CI.codelocs[i]]
+                @test !(lineinfo.method === :call ||
+                        lineinfo.file === Symbol("context.jl"))
+            end
+        end
 
         begin
             global kernel2!
