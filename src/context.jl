@@ -93,6 +93,10 @@ const ctx = Cassette.disablehooks(Ctx(pass = GPUifyPass))
 @inline Cassette.overdub(::Ctx, ::typeof(Core.apply_type), args...) = return Core.apply_type(args...)
 @inline Cassette.overdub(::Ctx, ::typeof(StaticArrays.Size), x::Type{<:AbstractArray{<:Any, N}}) where {N} = return StaticArrays.Size(x)
 
+# this looks like a recursion detection failure
+@inline Cassette.overdub(::Ctx, ::typeof(Base.Broadcast.axes), args...) = return Base.Broadcast.axes(args...)
+
+
 ###
 # Rewrite functions
 ###
