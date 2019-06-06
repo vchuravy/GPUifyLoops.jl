@@ -234,4 +234,7 @@ include("shmem.jl")
 include("loopinfo.jl")
 using .LoopInfo
 
+export stencil
+include("stencil.jl")
+
 end
