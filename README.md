@@ -28,8 +28,8 @@ In order to test this package locally you need to do:
 ```
 julia --project=test/gpuenv
 julia> ]
-(v1.1) pkg> resolve
-(v1.1) pkg> instantiate
+(gpuenv) pkg> resolve
+(gpuenv) pkg> instantiate
 ```
 
 This will resolve the GPU environment, please do not checking changes to `test/gpuenv/`.
