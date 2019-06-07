@@ -128,6 +128,15 @@ function kernel3!(A)
     nothing
 end
 
+let
+    function ker1!(::Val{Nq}) where Nq
+      s_x = @shmem Float32 Nq
+    end
+    
+    CI, rt = @code_typed ker1!(Val(10))
+    @test Base.isconcretetype(rt)
+end
+
 @testset "shared memory" begin
     data = rand(Float32, 1024)
     cpudata = copy(data)
