@@ -1,51 +1,75 @@
 module CuStencil
 
+import .GPUifyLoops: SevenPoint, Full
+
 using .CUDAnative
 using StaticArrays
 
-    # TODO: Add an option to load in the full 3x3x3x stencil including
-    # the 1,1 and I+1,I+1 corners
+# TODO:
+# In theory we can reduce register usage, by shuffeling in the next iteration
+# only tricky situation is the edges.
 
-struct Stencil{N, Dim, Shmem, U}
+struct Stencil{N, Dim, Kind, Shmem, U}
     dims::Dim
     buf::Shmem
     arrays::U
-    Stencil{N}(dims, shmem, arrays) where N = new{N, typeof(dims), typeof(shmem), typeof(arrays)}(dims, shmem, arrays) 
+    Stencil{N}(dims::Dim, kind::Kind, shmem::Shmem, arrays::U) where {N, Dim, Kind, Shmem, U} =
+        new{N, Kind, Shmem, U}(dims, shmem, arrays) 
 end
 
 # note this 3D only
-function stencil(dims, args::Vararg{<:Any, N}) where N
+function stencil(dims, kind, args::Vararg{<:Any, N}) where N
     eltypes = map(eltype, args)
     T = reduce(promote_type, eltypes)
     @assert Base.isconcretetype(T)
 
     buf = @cuDynamicSharedMem T (blockDim().x+2, blockDim().y+2)
-    Stencil{N}(dims, buf, args)
+    Stencil{N}(dims, kind, buf, args)
 end
 
-function load_stencil!(buf, data, i, j, k)
+function load_stencil!(::Type{Kind}, buf, data, i, j, k) where Kind
     # translate between local to global indices
     m = threadIdx().x
     n = threadIdx().y
     # halo region 
     m, n = m+1, n+1
 
-    buf[m, n] =  data[i, j, k]
+    # boundary of block
+    M = blockDim().x+1
+    N = blockDim().y+1
 
-    if m == 2 
-        buf[m-1, n] = data[i-1, j, k]
-    else m == blockDim().x+1 # boundary of block
-        buf[m+1, n] = data[i+1, j, k]
+    full = Kind <: Full
+
+    @inbounds begin
+        buf[m, n] =  data[i, j, k]
+
+        if m == 2
+            buf[m-1, n] = data[i-1, j, k]
+            if full && n == 2
+                buf[m-1, n-1, k] = data[i, j-1, k]
+            elseif full && n == N 
+                buf[m-1, n+1, k] = data[i, j+1, k]
+            end
+        elseif m == M
+            buf[m+1, n] = data[i+1, j, k]
+            if full && n == 2
+                buf[m+1, n-1, k] = data[i, j-1, k]
+            elseif full && n == N 
+                buf[m+1, n+1, k] = data[i, j+1, k]
+            end
+        end
+
+        if n == 2
+            buf[m, n-1, k] = data[i, j-1, k]
+        elseif n == N 
+            buf[m, n+1, k] = data[i, j+1, k]
+        end
     end
-    if n == 2
-        buf[m, n-1, k] = data[i, j-1, k]
-    else n == blockDim().y+1 # boundary of block
-        buf[m, n+1, k] = data[i, j+1, k]
-    end
-    # NOTE we don't load in the corners yet
+
     sync_warp()
     return m, n
 end
+
 
 function load_slice(buf,m,n)
     # SMatrix{3,3}(view(buf, m-1:m+1, n-1:n+1))
@@ -56,7 +80,7 @@ function load_slice(buf,m,n)
     SMatrix{3,3}(data)
 end
 
-function Base.iterate(stencil::Stencil{N}) where N
+function Base.iterate(stencil::Stencil{N, Kind}) where {N, Kind}
     j = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     k = 1
@@ -70,13 +94,13 @@ function Base.iterate(stencil::Stencil{N}) where N
     regions = ntuple(Val(N)) do ind
         data = stencil.arrays[ind]
         # load the boundary
-        m, n = load_stencil!(buf, data, i, j, k-1)
+        m, n = load_stencil!(Kind, buf, data, i, j, k-1)
         pre = load_slice(buf, m, n)
 
-        m, n = load_stencil!(buf, data, i, j, k)
+        m, n = load_stencil!(Kind, buf, data, i, j, k)
         current = load_slice(buf, m, n)
 
-        m, n = load_stencil!(buf, data, i, j, k+1)
+        m, n = load_stencil!(Kind, buf, data, i, j, k+1)
         next = load_slice(buf, m, n)
 
         ldata = cat(pre, current, next, dims=3)
@@ -86,7 +110,7 @@ function Base.iterate(stencil::Stencil{N}) where N
 end
 
 
-function Base.iterate(stencil::Stencil{N}, (regions, k)) where N
+function Base.iterate(stencil::Stencil{N, Kind}, (regions, k)) where {N, Kind}
     j = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
 
@@ -101,7 +125,7 @@ function Base.iterate(stencil::Stencil{N}, (regions, k)) where N
         data = stencil.arrays[ind]
         old = regions[ind]
 
-        m, n = load_stencil!(buf, data, i, j, k+1)
+        m, n = load_stencil!(Kind, buf, data, i, j, k+1)
         next = SMatrix{3,3}(view(buf, m-1:m+1, n-1:m+1))
         ldata = cat(old[:,:,2], old[:,:,3], next, dims=3)
     end

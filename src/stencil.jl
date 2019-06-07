@@ -5,14 +5,18 @@ struct Stencil{N, Dim, U}
     Stencil{N}(dims, arrays) where N = new{N, typeof(dims), typeof(arrays)}(dims, arrays) 
 end
 
+abstract type StencilKind end
+struct SevenPoint <: StencilKind end
+struct Full <: StencilKind end
+
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     include("custencil.jl")
 end
 
 # note this 3D only
-function stencil(dims, args::Vararg{<:Any, N}) where N
+function stencil(dims, kind, args::Vararg{<:Any, N}) where N
     if isdevice()
-        return CuStencil.stencil(dims, args...)
+        return CuStencil.stencil(dims, kind, args...)
     else
         return Stencil{N}(dims, args)
     end
