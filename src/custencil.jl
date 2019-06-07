@@ -1,8 +1,8 @@
 module CuStencil
 
-import .GPUifyLoops: SevenPoint, Full
+import ..GPUifyLoops: SevenPoint, Full
 
-using .CUDAnative
+using ..CUDAnative
 using StaticArrays
 
 # TODO:
@@ -14,7 +14,7 @@ struct Stencil{N, Dim, Kind, Shmem, U}
     buf::Shmem
     arrays::U
     Stencil{N}(dims::Dim, kind::Kind, shmem::Shmem, arrays::U) where {N, Dim, Kind, Shmem, U} =
-        new{N, Kind, Shmem, U}(dims, shmem, arrays) 
+        new{N, Dim, Kind, Shmem, U}(dims, shmem, arrays) 
 end
 
 # note this 3D only
@@ -85,7 +85,7 @@ function Base.iterate(stencil::Stencil{N, Kind}) where {N, Kind}
     i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     k = 1
     I, J, K = stencil.dims
-    if !checkbounds(Bool, CartesianIndices((1:I, 1:J, 1:K)), i,j,k)
+    if !(i in 1:I && j in 1:J && k in 1:K)
         return nothing
     end
 
@@ -115,7 +115,7 @@ function Base.iterate(stencil::Stencil{N, Kind}, (regions, k)) where {N, Kind}
     i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
 
     I, J, K = stencil.dims
-    if !checkbounds(Bool, CartesianIndices((1:I, 1:J, 1:K)), i,j,k)
+    if !(i in 1:I && j in 1:J && k in 1:K)
         return nothing
     end
 

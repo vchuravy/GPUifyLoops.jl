@@ -39,8 +39,8 @@ function Base.iterate(stencil::Stencil{N}) where N
     ((i,j,k,regions...), I)
 end
 
-function Base.iterate(stencil::Stencil{N}, I) where N
-    i, j, k = I.I
+function Base.iterate(stencil::Stencil{N}, Idx) where N
+    i, j, k = Idx.I
     I, J, K = stencil.dims
     inds = CartesianIndices((1:I, 1:J, 1:K))
     if !checkbounds(Bool, inds, i, j, k)
@@ -52,6 +52,6 @@ function Base.iterate(stencil::Stencil{N}, I) where N
         SArray{Tuple{3,3,3}}(view(data, i-1:i+1, j-1:j+1, k-1:k+1))
     end
 
-    I = nextind(inds, I)
-    ((i,j,k,regions...), I)
+    Idx = nextind(inds, Idx)
+    ((i,j,k,regions...), Idx)
 end
