@@ -1,5 +1,6 @@
 using GPUifyLoops
 using Test
+using InteractiveUtils
 
 function kernel(A)
     @loop for i in (1:size(A,1);
@@ -236,3 +237,29 @@ end
   @launch CPU() threads=(3,3) kernel_MArray!(A)
   @launch CPU() threads=(3,3) kernel_similar_MArray!(A)
 end
+
+# For the next three test we check that the _apply got inlined correctly
+Base.@pure pure_f1(x, y) = x + y
+let
+    CI, rt = @code_typed GPUifyLoops.Cassette.overdub(GPUifyLoops.ctx, pure_f1, 1, 2)
+    expr = CI.code[end-1]
+    @test expr.head === :call || expr.head === :invoke
+    @test expr.args[1] === GlobalRef(Base, :add_int)
+end
+
+Base.@pure pure_f2(x, ys...) = x + sum(ys)
+let
+    CI, rt = @code_typed GPUifyLoops.Cassette.overdub(GPUifyLoops.ctx, pure_f2, 1, 2, 3, 4)
+    expr = CI.code[end-1]
+    @test expr.head === :call || expr.head === :invoke
+    @test expr.args[1] === GlobalRef(Base, :add_int)
+end
+
+Base.@pure pure_f3(ys...) = sum(ys)
+let
+    CI, rt = @code_typed GPUifyLoops.Cassette.overdub(GPUifyLoops.ctx, pure_f3, 1, 2, 3, 4)
+    expr = CI.code[end-1]
+    @test expr.head === :call || expr.head === :invoke
+    @test expr.args[1] === GlobalRef(Base, :add_int)
+end
+
