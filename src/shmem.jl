@@ -1,6 +1,8 @@
-__shmem(D::Device, args...) = throw(MethodError(__shmem, (D, args...)))
-@inline __shmem(::CPU, ::Type{T}, ::Val{dims}, ::Val) where {T, dims} = MArray{Tuple{dims...}, T}(undef)
+__size(args::Tuple) = Tuple{args...}
+__size(i::Int) = Tuple{i}
 
+__shmem(D::Device, args...) = throw(MethodError(__shmem, (D, args...)))
+@inline __shmem(::CPU, ::Type{T}, ::Val{dims}, ::Val) where {T, dims} =MArray{__size(dims), T}(undef)
 
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
