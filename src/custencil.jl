@@ -40,29 +40,31 @@ function load_stencil!(::Type{Kind}, buf, data, i, j, k) where Kind
 
     full = Kind <: Full
 
+    # @cuprintf("Greetings from block %ld, thread %ld!\n", Int64(blockIdx().x), Int64(threadIdx().x))
+
     @inbounds begin
         buf[m, n] =  data[i, j, k]
 
         if m == 2
             buf[m-1, n] = data[i-1, j, k]
             if full && n == 2
-                buf[m-1, n-1, k] = data[i, j-1, k]
+                buf[m-1, n-1] = data[i, j-1, k]
             elseif full && n == N 
-                buf[m-1, n+1, k] = data[i, j+1, k]
+                buf[m-1, n+1] = data[i, j+1, k]
             end
         elseif m == M
             buf[m+1, n] = data[i+1, j, k]
             if full && n == 2
-                buf[m+1, n-1, k] = data[i, j-1, k]
+                buf[m+1, n-1] = data[i, j-1, k]
             elseif full && n == N 
-                buf[m+1, n+1, k] = data[i, j+1, k]
+                buf[m+1, n+1] = data[i, j+1, k]
             end
         end
 
         if n == 2
-            buf[m, n-1, k] = data[i, j-1, k]
+            buf[m, n-1] = data[i, j-1, k]
         elseif n == N 
-            buf[m, n+1, k] = data[i, j+1, k]
+            buf[m, n+1] = data[i, j+1, k]
         end
     end
 
