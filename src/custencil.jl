@@ -80,6 +80,8 @@ function load_slice(buf,m,n)
     SMatrix{3,3}(data)
 end
 
+merge_slices(a,b,c) = SArray{Tuple{3,3,3}}(a.data..., b.data..., c.data...)
+
 function Base.iterate(stencil::Stencil{N, Kind}) where {N, Kind}
     j = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     i = (blockIdx().x - 1) * blockDim().x + threadIdx().x
@@ -103,7 +105,7 @@ function Base.iterate(stencil::Stencil{N, Kind}) where {N, Kind}
         m, n = load_stencil!(Kind, buf, data, i, j, k+1)
         next = load_slice(buf, m, n)
 
-        ldata = cat(pre, current, next, dims=3)
+        ldata = merge_slices(pre, current, next)
     end
 
     ((i,j,k,regions...), (regions, k+1))
@@ -126,8 +128,9 @@ function Base.iterate(stencil::Stencil{N, Kind}, (regions, k)) where {N, Kind}
         old = regions[ind]
 
         m, n = load_stencil!(Kind, buf, data, i, j, k+1)
-        next = SMatrix{3,3}(view(buf, m-1:m+1, n-1:m+1))
-        ldata = cat(old[:,:,2], old[:,:,3], next, dims=3)
+        next = load_slice(buf, m, n)
+
+        ldata = merge_slices(old[:,:,2], old[:,:,3], next)
     end
 
     ((i,j,k, next_regions...), (next_regions, k+1))
