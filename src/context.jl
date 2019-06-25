@@ -151,8 +151,8 @@ const cudafuns = (:cos, :cospi, :sin, :sinpi, :tan,
           :acosh, :asinh, :atanh,
           :log, :log10, :log1p, :log2,
           :exp, :exp2, :exp10, :expm1, :ldexp,
-          :isfinite, :isinf, :isnan,
-          :signbit, :abs,
+          # :isfinite, :isinf, :isnan, :signbit,
+          :abs,
           :sqrt, :cbrt,
           :ceil, :floor,)
 for f in cudafuns
