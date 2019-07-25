@@ -13,13 +13,21 @@ include:
                           Pkg.instantiate();
                           Pkg.build();
                           include("test/runtests.jl");'
-.gputest:
+.cudagputest:
   extends: .projecttest
   variables:
     CI_IMAGE_TAG:     'cuda'
-    CI_JULIA_PROJECT: 'test/gpuenv'
+    CI_JULIA_PROJECT: 'test/CUDA/gpuenv'
   tags:
     - cuda
+
+.rocmgputest:
+  extends: .projecttest
+  variables:
+    CI_IMAGE_TAG:     'rocm'
+    CI_JULIA_PROJECT: 'test/ROC/gpuenv'
+  tags:
+    - rocm
 
 .cputest:
   extends: .projecttest
@@ -27,8 +35,14 @@ include:
     CI_IMAGE_TAG:     'plain'
     CI_JULIA_PROJECT: 'test/testenv'
 
-gpu:test:dev:
-  extends: .gputest
+cudagpu:test:dev:
+  extends: .cudagputest
+  variables:
+    CI_VERSION_TAG: 'dev'
+  allow_failure: true
+
+rocmgpu:test:dev:
+  extends: .rocmgputest
   variables:
     CI_VERSION_TAG: 'dev'
   allow_failure: true
@@ -39,8 +53,13 @@ cpu:test:dev:
     CI_VERSION_TAG: 'dev'
   allow_failure: true
 
-gpu:test:v1.1:
-  extends: .gputest
+cudagpu:test:v1.1:
+  extends: .cudagputest
+  variables:
+    CI_VERSION_TAG: 'v1.1'
+
+rocmgpu:test:v1.1:
+  extends: .rocmgputest
   variables:
     CI_VERSION_TAG: 'v1.1'
 

@@ -9,13 +9,9 @@ struct CPU <: Device end
 
 abstract type GPU <: Device end
 struct CUDA <: GPU end
+struct ROC <: GPU end
 
-#=
-# Hopefully we can eventually support AMDGPUs through ROCm
-struct ROCm <: GPU end
-=#
-
-export CPU, CUDA, Device
+export CPU, CUDA, ROC, Device
 
 using StaticArrays
 using Requires
@@ -33,7 +29,7 @@ include("context.jl")
 
 backend() = CPU()
 # FIXME: Get backend from Context or have Context per backend
-Cassette.overdub(ctx::Ctx, ::typeof(backend)) = CUDA()
+Cassette.overdub(ctx::Ctx, ::typeof(backend)) = ROC()
 
 macro launch(ex...)
     # destructure the `@launch` expression
@@ -82,7 +78,7 @@ end
 
 function split_kwargs(kwargs)
     compiler_kws = [:minthreads, :maxthreads, :blocks_per_sm, :maxregs]
-    call_kws     = [:blocks, :threads, :shmem, :stream]
+    call_kws     = [:blocks, :threads, :shmem, :stream, :groupsize, :gridsize]
     compiler_kwargs = []
     call_kwargs = []
     for kwarg in kwargs
@@ -136,6 +132,32 @@ end
     end
 end
 
+@init @require AMDGPUnative="12f4821f-d7ee-5ba6-b76b-566925c5fcc5" begin
+    using .AMDGPUnative
+    using .AMDGPUnative.HSARuntime
+    #import .AMDGPUnative.HSARuntime: HSASignal
+
+    function launch(::ROC, f::F, args...; kwargs...) where F
+        compiler_kwargs, call_kwargs = split_kwargs(kwargs)
+        GC.@preserve args begin
+            kernel_args = map(rocconvert, args)
+            kernel_tt = Tuple{map(Core.Typeof, kernel_args)...}
+            agent = get_default_agent()
+            kernel = rocfunction(agent, contextualize(f), kernel_tt; compiler_kwargs...)
+
+            # FIXME: maxthreads = AMDGPUnative.maxthreads(kernel)
+            maxthreads = 0
+            config = launch_config(f, maxthreads, args...; call_kwargs...)
+
+            queue = get_default_queue(agent)
+            signal = HSASignal()
+            kernel(queue, signal, kernel_args...; config...)
+            wait(signal)
+        end
+        return nothing
+    end
+end
+
 isdevice(::CPU) = false
 isdevice(::Device) = true
 isdevice() = isdevice(backend())
@@ -146,6 +168,11 @@ sync() = sync(backend())
 @init @require CUDAnative="be33ccc6-a3ff-5ff2-a52e-74243cff1e17" begin
     using .CUDAnative
     sync(::CUDA) = CUDAnative.sync_threads()
+end
+
+@init @require AMDGPUnative="12f4821f-d7ee-5ba6-b76b-566925c5fcc5" begin
+    using .AMDGPUnative
+    sync(::ROC) = AMDGPUnative.sync_workgroup()
 end
 
 @deprecate iscpu(::Val{:GPU}) isdevice()

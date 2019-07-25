@@ -113,6 +113,57 @@ end
     end
 end
 
+@static if Base.find_package("HSAArrays") !== nothing
+    using HSAArrays
+    using AMDGPUnative
+
+    function kernel(A::HSAArray)
+        @launch ROC() threads=length(A) kernel(A)
+    end
+
+    @testset "HSAArray" begin
+        data = HSAArray{Float32}(undef, 1024)
+        kernel(data)
+    end
+
+    @testset "contextualize" begin
+        f(x) = 2*x
+        g(x) = GPUifyLoops.contextualize(f)(x)
+        @test g(3.0) == 6.0
+        f(x) = 3*x
+
+        if GPUifyLoops.INTERACTIVE
+            @test g(3.0) == 9.0
+        else
+            @test_broken g(3.0) == 9.0
+        end
+        f1(x) = (sin(x); return nothing)
+        g1(x) = GPUifyLoops.contextualize(f1)(x)
+        asm = sprint(io->AMDGPUnative.code_llvm(io, g1, Tuple{Float64},
+                                                dump_module=true))
+        @test occursin("call double @__nv_sin", asm)
+
+        begin
+            global kernel2!
+            data = rand(Float32, 1024)
+            fdata = similar(data)
+            kernel2!(fdata, data, f3)
+
+            @test f3.(data) ≈ fdata
+
+            function kernel2!(A::HSAArray, B::HSAArray, f)
+                @launch ROC() threads=length(A) kernel2!(A, B, f)
+            end
+
+            hsadata = HSAArray(data)
+            hsafdata = similar(hsadata)
+            kernel2!(hsafdata, hsadata, f3)
+
+            @test f3.(data) ≈ hsafdata
+        end
+    end
+end
+
 function kernel3!(A)
     s1 = @shmem eltype(A) (1024,)
     s2 = @shmem eltype(A) (1024,)
@@ -151,6 +202,15 @@ end
         cudata = CuArray(data)
         @launch CUDA() threads=length(cudata) kernel3!(cudata)
         @test Array(cudata) ≈ 2 .* data
+    end
+
+    @static if Base.find_package("HSAArrays") !== nothing
+        using HSAArrays
+        using AMDGPUnative
+
+        hsadata = HSAArray(data)
+        @launch ROC() threads=length(hsadata) kernel3!(hsadata)
+        @test Array(hsadata) ≈ 2 .* data
     end
 end
 
