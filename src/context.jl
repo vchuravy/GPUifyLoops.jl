@@ -106,7 +106,22 @@ const ctx = Cassette.disablehooks(Ctx(pass = GPUifyPass))
 
 # this looks like a recursion detection failure
 @inline Cassette.overdub(::Ctx, ::typeof(Base.Broadcast.axes), args...) = return Base.Broadcast.axes(args...)
+struct GPUBoundsError <: Exception
+  T::Any
+  axes::Any
+  i::Any
+end
 
+struct Errror <: Exception end
+@inline function Cassette.overdub(::Ctx, ::typeof(Base.throw_boundserror), data::A, I) where A
+   #throw(GPUBoundsError(A, size(data), I))
+   #error()
+   throw(Errror())
+end
+
+@inline function Cassette.overdub(::Ctx, ::typeof(Base.Checked.throw_overflowerr_binaryop), op, x, y)
+   throw(Errror())
+end
 
 ###
 # Rewrite functions
