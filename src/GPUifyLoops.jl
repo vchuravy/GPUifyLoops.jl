@@ -82,7 +82,7 @@ end
 
 function split_kwargs(kwargs)
     compiler_kws = [:minthreads, :maxthreads, :blocks_per_sm, :maxregs]
-    call_kws     = [:blocks, :threads, :shmem, :stream]
+    call_kws     = [:blocks, :threads, :shmem, :stream, :config]
     compiler_kwargs = []
     call_kwargs = []
     for kwarg in kwargs
