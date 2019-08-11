@@ -49,6 +49,16 @@ cpu:test:v1.1:
   variables:
     CI_VERSION_TAG: 'v1.1'
 
+gpu:test:v1.2:
+  extends: .gputest
+  variables:
+    CI_VERSION_TAG: 'v1.2'
+
+cpu:test:v1.2:
+  extends: .cputest
+  variables:
+    CI_VERSION_TAG: 'v1.2'
+
 documentation:
   extends: .documentation
   dependencies:
