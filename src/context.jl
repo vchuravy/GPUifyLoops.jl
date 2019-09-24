@@ -213,4 +213,6 @@ kernel!(c)
 @assert g.(a) ≈ c
 ```
 """
-contextualize(f::F) where F = (args...) -> Cassette.overdub(ctx, f, args...)
+contextualize(f::F) where F = function (args::Vararg{<:Any, N}) where N
+  Cassette.overdub(ctx, f, args...)
+end
