@@ -46,9 +46,7 @@ end
         @test g(3.0) == 6.0
         f(x) = 3*x
 
-        # Enable test on v1.3 once fix commit is known
-        # @test g(3.0) == 9.0
-        @test_broken g(3.0) == 9.0
+        @test g(3.0) == 9.0
         f1(x) = (sin(1.0 + x); return nothing)
         g1(x) = GPUifyLoops.contextualize(f1)(x)
         asm = sprint(io->CUDAnative.code_llvm(io, g1, Tuple{Float64}, kernel=true,
