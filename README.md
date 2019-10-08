@@ -20,6 +20,19 @@ julia>]
 
 **Note**: The current version of this package requires Julia 1.1.
 
+Debugging
+---------
+
+Debugging failures to transforma a function for the GPU requires the use of [`Cthulhu.jl`](https://github.com/JuliaDebug/Cthulhu.jl).
+
+```
+using Cthulhu
+using GPUifyLoops
+
+# @launch CUDA() f(args...)
+descend(GPUifyLoops.signature(f, args...)...)
+```
+
 Development
 -----------
 
