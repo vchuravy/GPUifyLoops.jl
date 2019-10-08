@@ -44,3 +44,11 @@ B = floor(Int, N / T)
 
 @benchmark CuArrays.@sync @launch CUDA() threads=(T, T, T) blocks=(B, B, B) laplacian!(u, v, w, ∇)
 
+function laplacian_stencil!(u, v, w, ∇)
+    for (i, j, k, uₛ, vₛ, wₛ) in stencil((Nx, Ny, Nz), u, v, w)
+        @inbounds ∇[i, j, k] = ∇²(2, 2, 2, u, v, w)
+    end
+end
+
+@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, T) blocks=(B, B, B) laplacian_stencil!(u, v, w, ∇)
+
