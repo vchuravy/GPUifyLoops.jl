@@ -1,7 +1,7 @@
 using Adapt, CUDAnative, CuArrays, OffsetArrays, GPUifyLoops
 using BenchmarkTools
 
-using GPUifyLoops: stencil
+using GPUifyLoops: stencil, Full
 
 # Adapt an offset CuArray to work nicely with CUDA kernels.
 Adapt.adapt_structure(to, x::OffsetArray) = OffsetArray(adapt(to, parent(x)), x.offsets)
@@ -41,16 +41,16 @@ v = OffsetArray(v, 0:Nx+1, 0:Ny+1, 0:Nz+1)
 w = OffsetArray(w, 0:Nx+1, 0:Ny+1, 0:Nz+1)
 ∇ = OffsetArray(∇, 0:Nx+1, 0:Ny+1, 0:Nz+1)
 
-T = floor(Int, ∛N)
+T = floor(Int, √N)
 B = floor(Int, N / T)
 
-@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, T) blocks=(B, B, B) laplacian!(u, v, w, ∇)
+@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, 1) blocks=(B, B, 1) laplacian!(u, v, w, ∇)
 
 function laplacian_stencil!(u, v, w, ∇)
-    for (i, j, k, uₛ, vₛ, wₛ) in stencil((Nx, Ny, Nz), u, v, w)
+    for (i, j, k, uₛ, vₛ, wₛ) in stencil((Nx, Ny, Nz), Full(), u, v, w)
         @inbounds ∇[i, j, k] = ∇²(2, 2, 2, uₛ, vₛ, wₛ)
     end
 end
 
-@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, T) blocks=(B, B, B) laplacian_stencil!(u, v, w, ∇)
+@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, 1) blocks=(B, B, 1) laplacian_stencil!(u, v, w, ∇)
 
