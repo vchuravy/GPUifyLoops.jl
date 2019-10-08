@@ -1,6 +1,8 @@
 using Adapt, CUDAnative, CuArrays, OffsetArrays, GPUifyLoops
 using BenchmarkTools
 
+using GPUifyLoops: stencil
+
 # Adapt an offset CuArray to work nicely with CUDA kernels.
 Adapt.adapt_structure(to, x::OffsetArray) = OffsetArray(adapt(to, parent(x)), x.offsets)
 
@@ -46,7 +48,7 @@ B = floor(Int, N / T)
 
 function laplacian_stencil!(u, v, w, ∇)
     for (i, j, k, uₛ, vₛ, wₛ) in stencil((Nx, Ny, Nz), u, v, w)
-        @inbounds ∇[i, j, k] = ∇²(2, 2, 2, u, v, w)
+        @inbounds ∇[i, j, k] = ∇²(2, 2, 2, uₛ, vₛ, wₛ)
     end
 end
 
