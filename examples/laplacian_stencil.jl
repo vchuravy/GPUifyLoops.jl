@@ -34,17 +34,21 @@ end
 u  = rand(Nx+2, Ny+2, Nz+2) |> CuArray
 v  = rand(Nx+2, Ny+2, Nz+2) |> CuArray
 w  = rand(Nx+2, Ny+2, Nz+2) |> CuArray
-∇ = zeros(Nx+2, Ny+2, Nz+2) |> CuArray
+∇1 = zeros(Nx+2, Ny+2, Nz+2) |> CuArray
+∇2 = zeros(Nx+2, Ny+2, Nz+2) |> CuArray
 
 u = OffsetArray(u, 0:Nx+1, 0:Ny+1, 0:Nz+1)
 v = OffsetArray(v, 0:Nx+1, 0:Ny+1, 0:Nz+1)
 w = OffsetArray(w, 0:Nx+1, 0:Ny+1, 0:Nz+1)
-∇ = OffsetArray(∇, 0:Nx+1, 0:Ny+1, 0:Nz+1)
+∇1 = OffsetArray(∇, 0:Nx+1, 0:Ny+1, 0:Nz+1)
+∇2 = OffsetArray(∇, 0:Nx+1, 0:Ny+1, 0:Nz+1)
 
-T = floor(Int, √N)
+T = min(16, floor(Int, √N))
 B = floor(Int, N / T)
 
-@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, 1) blocks=(B, B, 1) laplacian!(u, v, w, ∇)
+println("Benchmarking laplacian!...")
+r = @benchmark CuArrays.@sync @launch CUDA() threads=(T, T, 1) blocks=(B, B, 1) laplacian!(u, v, w, ∇1)
+display(r)
 
 function laplacian_stencil!(u, v, w, ∇)
     for (i, j, k, uₛ, vₛ, wₛ) in stencil((Nx, Ny, Nz), Full(), u, v, w)
@@ -52,5 +56,6 @@ function laplacian_stencil!(u, v, w, ∇)
     end
 end
 
-@benchmark CuArrays.@sync @launch CUDA() threads=(T, T, 1) blocks=(B, B, 1) laplacian_stencil!(u, v, w, ∇)
-
+println("Benchmarking laplacian_stencil!...")
+r = @benchmark CuArrays.@sync @launch CUDA() threads=(T, T, 1) blocks=(B, B, 1) shmem=((T+2)*(T+2)*sizeof(Float64)) laplacian_stencil!(u, v, w, ∇2)
+display(r)
