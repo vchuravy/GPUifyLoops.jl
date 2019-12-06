@@ -79,3 +79,27 @@ Which yields something like:
   %12 = call i64 @julia_iteration_12527(i64 9)
   %13 = call i64 @julia_iteration_12527(i64 10)
 ```
+
+### Prefetch
+
+We can pass information to LLVM about prefetching data.  GPUifyLoops
+contains a macro `@prefetch` that gives a hint to the compiler (using the
+[llvm prefetch intrinsic][0]) that, if supported it, should prefetch the
+given array data.  Note, that this macro should not change impact the
+behavior of the program but could change the performance characteristics.
+
+```@docs
+@prefetch
+```
+#### Example:
+
+```julia
+usevalue(x) = @show x
+for i in 1:length(A)
+    @prefetch A[i]
+    # do some other work...
+    usevalue(A[i])
+end
+```
+
+[0]: https://llvm.org/docs/LangRef.html#llvm-prefetch-intrinsic

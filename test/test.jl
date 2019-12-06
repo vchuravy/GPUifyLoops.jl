@@ -22,9 +22,18 @@ function kernel2!(A, B, h)
     nothing
 end
 
+function testprefetch(data, index)
+    io = IOBuffer()
+    code_llvm(io, prefetch, Tuple{typeof(data), typeof(index)})
+    str = String(take!(io))
+    @test occursin(r"call void @llvm\.prefetch\(i8\* %\d+, i32 0, i32 3, i32 1\)", str)
+end
+
 @testset "Array" begin
     data = Array{Float32}(undef, 1024)
     kernel(data)
+    testprefetch(data, 12)
+    @test_nowarn prefetch(data, 12)
 end
 
 @static if Base.find_package("CuArrays") !== nothing
@@ -38,6 +47,7 @@ end
     @testset "CuArray" begin
         data = CuArray{Float32}(undef, 1024)
         kernel(data)
+        # testprefetch(data, 12)
     end
 
     @testset "contextualize" begin
