@@ -111,6 +111,30 @@ end
             @test f5.(data) ≈ cufdata
         end
     end
+
+    @testset "read only load" begin
+        global read_only_kernel, con_read_only_kernel
+        read_only_kernel(A, B) = (B[1] = read_only_load(A, 1); return nothing)
+        con_read_only_kernel(A, B) = GPUifyLoops.contextualize(read_only_kernel)(A, B)
+        tt = Tuple{CUDAnative.CuDeviceArray{Float32, 1, CUDAnative.AS.Global},
+                   CUDAnative.CuDeviceArray{Float32, 1, CUDAnative.AS.Global}}
+
+        asm = sprint(io->CUDAnative.code_llvm(io, con_read_only_kernel, tt, kernel=true,
+                                              optimize=false, dump_module=true))
+
+        @test occursin("llvm.nvvm.ldg.global.f.f32", asm)
+
+        A = rand(Float32, 1024)
+        B = similar(A)
+        @launch CPU() threads=length(A) read_only_kernel(A, B)
+        @test A[1] == B[1]
+
+        cuA = CuArray(A)
+        cuB = similar(cuA)
+
+        @launch CUDA() threads=length(cuA) read_only_kernel(cuA, cuB)
+        @test A[1] == Array(cuB)[1]
+    end
 end
 
 function kernel3!(A)
