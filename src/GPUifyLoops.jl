@@ -25,6 +25,7 @@ export @scratch, @shmem
 export contextualize
 export @unroll
 export @launch
+export read_only_load
 
 ##
 # contextualize
@@ -234,6 +235,11 @@ end
 ###
 include("scratch.jl")
 include("shmem.jl")
+
+###
+# Read only loads
+###
+include("read_only_load.jl")
 
 ###
 # Loopinfo
