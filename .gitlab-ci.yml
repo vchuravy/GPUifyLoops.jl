@@ -1,5 +1,5 @@
 include:
-  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v3/common.yml'
+  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v6.yml'
 
 .projecttest:
   extends: .test
@@ -14,58 +14,66 @@ include:
                           Pkg.build();
                           include("test/runtests.jl");'
 .gputest:
+  image: nvidia/cuda:10.1-devel
   extends: .projecttest
-  variables:
-    CI_IMAGE_TAG:     'cuda'
-    CI_JULIA_PROJECT: 'test/gpuenv'
   tags:
-    - cuda
+    - nvidia
+  variables:
+    CI_JULIA_PROJECT: 'test/gpuenv'
 
 .cputest:
   extends: .projecttest
   variables:
-    CI_IMAGE_TAG:     'plain'
     CI_JULIA_PROJECT: 'test/testenv'
 
 gpu:test:dev:
-  extends: .gputest
-  variables:
-    CI_VERSION_TAG: 'dev'
+  extends:
+    - .gputest
+    - .julia:nightly
   allow_failure: true
 
 cpu:test:dev:
-  extends: .cputest
-  variables:
-    CI_VERSION_TAG: 'dev'
+  extends:
+    - .cputest
+    - .julia:nightly
   allow_failure: true
 
 gpu:test:v1.1:
-  extends: .gputest
-  variables:
-    CI_VERSION_TAG: 'v1.1'
+  extends:
+    - .gputest
+    - .julia:1.1
 
 cpu:test:v1.1:
-  extends: .cputest
-  variables:
-    CI_VERSION_TAG: 'v1.1'
+  extends:
+    - .cputest
+    - .julia:1.1
 
 gpu:test:v1.2:
-  extends: .gputest
-  variables:
-    CI_VERSION_TAG: 'v1.2'
+  extends:
+    - .gputest
+    - .julia:1.2
 
 cpu:test:v1.2:
-  extends: .cputest
-  variables:
-    CI_VERSION_TAG: 'v1.2'
+  extends:
+    - .cputest
+    - .julia:1.2
+
+gpu:test:v1.3:
+  extends:
+    - .gputest
+    - .julia:1.3
+
+cpu:test:v1.3:
+  extends:
+    - .cputest
+    - .julia:1.3
 
 documentation:
-  extends: .documentation
-  dependencies:
-    - cpu:test:v1.1 
-  variables:
-    CI_VERSION_TAG: 'v1.1'
-    CI_IMAGE_TAG: 'plain'
+  extends:
+    - .documentation
+    - .julia:1.3
+  tags:
+    - nvidia
   only:
     - master
     - staging
