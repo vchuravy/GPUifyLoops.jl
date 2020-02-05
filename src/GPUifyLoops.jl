@@ -248,4 +248,5 @@ include("read_only_load.jl")
 include("loopinfo.jl")
 using .LoopInfo
 
+include("print.jl")
 end

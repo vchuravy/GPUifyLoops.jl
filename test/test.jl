@@ -274,6 +274,22 @@ end
   @launch CPU() threads=(3,3) kernel_similar_MArray!(A)
 end
 
+function kernel_print()
+    @loop for i in (1:3; threadIdx().x)
+        @gpuifyprintln("Hello from thread", i)
+    end
+end
+@testset "print" begin
+  @static if Base.find_package("CuArrays") !== nothing
+    using CuArrays
+    using CUDAnative
+
+    @launch CUDA() threads=(3) kernel_print()
+  end
+
+    @launch CPU() threads=(3) kernel_print()
+end
+
 # For the next three test we check that the _apply got inlined correctly
 Base.@pure pure_f1(x, y) = x + y
 let
