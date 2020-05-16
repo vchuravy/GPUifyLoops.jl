@@ -7,6 +7,11 @@ GPUifyLoops.jl
 [docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
 [docs-latest-url]: https://juliagpu.gitlab.io/GPUifyLoops.jl/
 
+End of Life
+-----------
+
+GPUifyLoops.jl is no longer under development and has been replaced by [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl).
+
 Installation
 ------------
 
